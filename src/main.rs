@@ -5,13 +5,13 @@ extern crate lazy_static;
 extern crate clap;
 extern crate regex;
 
-use clap::{Arg, App};
-use regex::{Regex,Captures};
-use std::process::{Command, Stdio};
-use std::path::Path;
+use clap::{App, Arg};
+use regex::{Captures, Regex};
+use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, Write};
-use std::fs::File;
+// use std::path::Path;
+use std::process::{Command, Stdio};
 
 // a cross-platform command executor
 fn cmd() -> Command {
@@ -58,59 +58,73 @@ fn write_file(path: &str, contents: String) -> Result<(), std::io::Error> {
 lazy_static! {
     static ref RE_MD_BLOCK_STR: String = String::from(r"^<!-- BEGIN mdsh -->.+?^<-- END mdsh -->");
     static ref RE_FENCE_BLOCK_STR: String = String::from(r"^```.+?^```");
-
     static ref RE_MD_COMMAND_STR: String = String::from(r"^`\> (?P<command>[^`]+)`\s*$");
     static ref RE_FENCE_COMMAND_STR: String = String::from(r"^`\$ (?P<command>[^`]+)`\s*$");
-
-    static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(r"(?sm)({})[\s\n]+{}", RE_FENCE_COMMAND_STR.to_string(), RE_FENCE_BLOCK_STR.to_string());
+    static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
+        r"(?sm)({})[\s\n]+{}",
+        RE_FENCE_COMMAND_STR.to_string(),
+        RE_FENCE_BLOCK_STR.to_string()
+    );
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
-
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm){}", RE_FENCE_COMMAND_STR.to_string());
+    static ref RE_MATCH_FENCE_COMMAND_STR: String =
+        format!(r"(?sm){}", RE_FENCE_COMMAND_STR.to_string());
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
-
-
 }
-
-
 
 fn main() -> std::io::Result<()> {
     let matches = App::new("mdsh")
-                          .about("Markdown shell pre-processor")
-                          .author("zimbatm <zimbatm@zimbatm.com>")
-                          .version(crate_version!())
-                          .arg(Arg::with_name("input")
-                               .value_name("INPUT")
-                               .help("Path to the markdown file")
-                               .default_value("README.md")
-                               .index(1))
-                          .arg(Arg::with_name("work_dir")
-                               .long("work_dir")
-                               .value_name("DIR")
-                               .help("Directory to execute the scripts under, defaults to the input folder"))
-                          .arg(Arg::with_name("output")
-                               .short("o")
-                               .long("output")
-                               .value_name("OUTPUT")
-                               .help("Path to the output file, defaults to the input value"))
-                          .arg(Arg::with_name("clean")
-                               .long("clean")
-                               .help("Only clean the file from blocks"))
-                          .get_matches();
+        .about("Markdown shell pre-processor")
+        .author("zimbatm <zimbatm@zimbatm.com>")
+        .version(crate_version!())
+        .arg(
+            Arg::with_name("input")
+                .value_name("INPUT")
+                .help("Path to the markdown file")
+                .default_value("README.md")
+                .index(1),
+        )
+        /*
+        .arg(
+            Arg::with_name("work_dir")
+                .long("work_dir")
+                .value_name("DIR")
+                .help("Directory to execute the scripts under, defaults to the input folder"),
+        )
+        */
+        .arg(
+            Arg::with_name("output")
+                .short("o")
+                .long("output")
+                .value_name("OUTPUT")
+                .help("Path to the output file, defaults to the input value"),
+        )
+        .arg(
+            Arg::with_name("clean")
+                .long("clean")
+                .help("Only clean the file from blocks"),
+        )
+        .get_matches();
 
     let clean = matches.is_present("clean");
     let input = matches.value_of("input").unwrap();
-    let output = matches.value_of("output").unwrap_or(input);
-    let work_dir = match matches.value_of("work_dir") {
-        Some(path) => {
-            Path::new(path)
-        },
-        None => {
-            Path::new(input).parent().unwrap()
-        },
+    /*
+    let input_path = Path::new(input).canonicalize();
+    let input_dir = if input == "-" {
+        Path::new(".")
+    } else {
+        input_path.unwrap().parent().unwrap()
     };
+    */
+    let output = matches.value_of("output").unwrap_or(input);
+    /*
+    let work_dir = match matches.value_of("work_dir") {
+        Some(path) => Path::new(path),
+        None => input_dir,
+    };
+    */
     let contents = read_file(input)?;
 
-    println!("Using clean={} input={}", clean, input);
+    eprintln!("Using clean={} input={} output={}", clean, input, output,);
 
     let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
         //println!("caps: {:?}", caps);
@@ -126,12 +140,12 @@ fn main() -> std::io::Result<()> {
     let contents = RE_MATCH_FENCE_COMMAND.replace_all(&contents, |caps: &Captures| {
         let command = &caps["command"];
 
-        println!("Running command: {}", command);
+        eprintln!("Running command: {}", command);
 
         let result = cmd()
             .stdin(Stdio::null()) // don't read from stdin
             .stderr(Stdio::inherit()) // send stderr to stderr
-            .current_dir(work_dir)
+            // .current_dir(work_dir)
             .arg(command)
             .output()
             .expect("failed to execute command");

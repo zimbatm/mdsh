@@ -23,7 +23,6 @@ FLAGS:
 
 OPTIONS:
     -o, --output <OUTPUT>    Path to the output file, defaults to the input value
-        --work_dir <DIR>     Directory to execute the scripts under, defaults to the input folder
 
 ARGS:
     <INPUT>    Path to the markdown file [default: README.md]
@@ -52,7 +51,7 @@ triple backtick.
 
 `$ date`
 ```
-Fri Feb 15 23:01:07 CET 2019
+Sat Feb 16 10:09:39 CET 2019
 ```
 
 NOTE: the block removal algorithm doesn't support output that contains the
