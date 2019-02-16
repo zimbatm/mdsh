@@ -11,7 +11,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, Write};
 // use std::path::Path;
-use std::process::{Command, Stdio, Output};
+use std::process::{Command, Output, Stdio};
 
 fn run_command(command: &str) -> Output {
     Command::new("bash")
@@ -73,13 +73,10 @@ fn wrap_nl<'a>(s: String) -> String {
 lazy_static! {
     static ref RE_FENCE_LINK_STR: String = String::from(r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
     static ref RE_MD_LINK_STR: String = String::from(r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
-
     static ref RE_FENCE_COMMAND_STR: String = String::from(r"^`\$ (?P<command>[^`]+)`\s*$");
     static ref RE_MD_COMMAND_STR: String = String::from(r"^`> (?P<command>[^`]+)`\s*$");
-
     static ref RE_MD_BLOCK_STR: String = String::from(r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->");
     static ref RE_FENCE_BLOCK_STR: String = String::from(r"^```.+?^```");
-
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+{}",
         RE_FENCE_COMMAND_STR.to_string(),
@@ -87,7 +84,6 @@ lazy_static! {
         RE_FENCE_BLOCK_STR.to_string()
     );
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
-
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+{}",
         RE_MD_COMMAND_STR.to_string(),
@@ -95,21 +91,14 @@ lazy_static! {
         RE_MD_BLOCK_STR.to_string()
     );
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
-
     static ref RE_MATCH_FENCE_COMMAND_STR: String =
         format!(r"(?sm){}", RE_FENCE_COMMAND_STR.to_string());
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
-
-    static ref RE_MATCH_MD_COMMAND_STR: String =
-        format!(r"(?sm){}", RE_MD_COMMAND_STR.to_string());
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR.to_string());
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
-
-    static ref RE_MATCH_FENCE_LINK_STR : String =
-        format!(r"(?sm){}", RE_FENCE_LINK_STR.to_string());
+    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR.to_string());
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
-
-    static ref RE_MATCH_MD_LINK_STR : String =
-        format!(r"(?sm){}", RE_MD_LINK_STR.to_string());
+    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR.to_string());
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
@@ -207,7 +196,11 @@ fn main() -> std::io::Result<()> {
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
 
-        format!("{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n", &caps[0], wrap_nl(stdout))
+        format!(
+            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n",
+            &caps[0],
+            wrap_nl(stdout)
+        )
     });
 
     let contents = RE_MATCH_FENCE_LINK.replace_all(&contents, |caps: &Captures| {
@@ -227,7 +220,11 @@ fn main() -> std::io::Result<()> {
 
         let result = read_file(link).unwrap_or(String::from("failed to read file"));
 
-        format!("{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n", &caps[0], wrap_nl(result))
+        format!(
+            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n",
+            &caps[0],
+            wrap_nl(result)
+        )
     });
 
     write_file(output, contents.to_string())?;
