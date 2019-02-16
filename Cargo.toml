@@ -3,6 +3,18 @@ name = "mdsh"
 version = "0.1.0"
 authors = ["zimbatm <zimbatm@zimbatm.com>"]
 edition = "2018"
+description = "Markdown shell pre-processor"
+homepage = "https://github.com/zimbatm/mdsh"
+repository = "https://github.com/zimbatm/mdsh"
+keywords = [
+  "markdown",
+  "shell",
+]
+readme = "README.md"
+license = "MIT"
+
+[badges.travis-ci]
+repository = "zimbatm/mdsh"
 
 [dependencies]
 clap = "2.32.0"
