@@ -1,6 +1,6 @@
 # mdsh - Markdown shell pre-processor
 
-**STATUS: WIP**
+[![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
 mdsh is a markdown pre-processor that works in place. There is no need to
 maintain a separate file with the template.
