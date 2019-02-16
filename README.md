@@ -14,12 +14,16 @@ zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor
 
 USAGE:
-    mdsh [FLAGS] [INPUT]
+    mdsh [FLAGS] [OPTIONS] [INPUT]
 
 FLAGS:
         --clean      Only clean the file from blocks
     -h, --help       Prints help information
     -V, --version    Prints version information
+
+OPTIONS:
+    -o, --output <OUTPUT>    Path to the output file, defaults to the input value
+        --work_dir <DIR>     Directory to execute the scripts under, defaults to the input folder
 
 ARGS:
     <INPUT>    Path to the markdown file [default: README.md]
@@ -48,13 +52,14 @@ triple backtick.
 
 `$ date`
 ```
-Fri Feb 15 17:57:50 CET 2019
+Fri Feb 15 23:01:07 CET 2019
 ```
 
 NOTE: the block removal algorithm doesn't support output that contains the
 end-of-include marker.
 
 `> nix-info --markdown`
+<!-- BEGIN mdsh -->
 
  - system: `"x86_64-linux"`
  - host os: `Linux 4.20.7, NixOS, 19.03.git.0309b923a25M (Koi)`
@@ -65,7 +70,7 @@ end-of-include marker.
  - channels(zimbatm): `""`
  - nixpkgs: `/home/zimbatm/go/src/github.com/nixos/nixpkgs-zimbatm`
 
-<!-- > nix-info --markdown -->
+<!-- END mdsh -->
 
 ### Includes
 

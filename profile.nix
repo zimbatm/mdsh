@@ -5,5 +5,6 @@ buildEnv {
     cargo
     cargo-edit
     rustc
+    rustfmt
   ];
 }
