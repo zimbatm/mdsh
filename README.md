@@ -51,7 +51,7 @@ triple backtick.
 
 `$ date`
 ```
-Sat Feb 16 10:09:39 CET 2019
+Sat Feb 16 12:45:45 CET 2019
 ```
 
 NOTE: the block removal algorithm doesn't support output that contains the
@@ -59,7 +59,6 @@ end-of-include marker.
 
 `> nix-info --markdown`
 <!-- BEGIN mdsh -->
-
  - system: `"x86_64-linux"`
  - host os: `Linux 4.20.7, NixOS, 19.03.git.0309b923a25M (Koi)`
  - multi-user?: `yes`
@@ -81,8 +80,16 @@ Includes work similarily to code blocks but with the link syntax.
 Examples:
 
 [$ code.rb](code.rb)
+```
+require "pp"
+
+pp ({ foo: 3 })
+```
 
 [> example.md](example.md)
+<!-- BEGIN mdsh -->
+*this is part of the example.md file*
+<!-- END mdsh -->
 
 ## Known issues
 
@@ -107,4 +114,27 @@ them as fast as we can.
 
 ## License
 
-[$ LICENSE.md](LICENSE.md)
+[> LICENSE](LICENSE)
+<!-- BEGIN mdsh -->
+MIT License
+
+Copyright (c) 2019 zimbatm and contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+<!-- END mdsh -->
