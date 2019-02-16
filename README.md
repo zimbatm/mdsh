@@ -2,14 +2,26 @@
 
 [![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
-mdsh is a markdown pre-processor that works in place. There is no need to
-maintain a separate file with the template.
+the mdsh project describes a Markdown language extension that can be used to
+automate some common tasks. The goal is to keep the syntax compatible while
+allowing a pre-processor (`mdsh`) to be run against the file.
+
+Quite often I find myself needing to embed a snippet of code or markdown from
+a different file. But GitHub doesn't allow loading other files, even when
+selecting a format that supports it (like AsciiDoc).
+
+Another quite common use-case is to embed the output of a command as a fenced
+code block or markdown content. For example the project is a CLI and the
+`--help` output could be displayed in the README.md.
+
+Both of these cases are supported by extending the existing syntax and running
+`mdsh` against the file.
 
 ## Usage
 
-`$ cargo run -- --help`
+`$ mdsh --help`
 ```
-mdsh 0.1.0
+mdsh 0.1.1
 zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor
 
@@ -28,18 +40,22 @@ ARGS:
     <INPUT>    Path to the markdown file [default: README.md]
 ```
 
-## Extensions
+## Syntax Extensions
 
-### Shell code
+### Inline Shell Code
 
-Inline `code span` that are alone on one line (only enclosed by whitespaces)
-And start with one of the following character with a whitespace.
+Inline Shell Code are normal `inline code` with that:
+* start at the beginning of a line
+* include either `$ ` or `> ` at the beginning of their content
 
-Those are interpreted. The output will depend on the
-character. The output will be attached below the line.
+Eg:
+    `$ date`
 
-TODO: make it clear that it's `<char><whitespace><command>`
-TODO: how to select the code block syntax?
+Or:
+    `> date`
+
+When those are enountered, the command is executed by `mdsh` and output as
+either a fenced code block (`$`) or markdown code (`>`).
 
 * `$` runs the command and outputs a code block
 * `>` runs the command and outputs markdown
@@ -51,11 +67,11 @@ triple backtick.
 
 `$ date`
 ```
-Sat Feb 16 12:45:45 CET 2019
+Sat Feb 16 21:33:35 CET 2019
 ```
 
 NOTE: the block removal algorithm doesn't support output that contains the
-end-of-include marker.
+comment markers.
 
 `> nix-info --markdown`
 <!-- BEGIN mdsh -->
@@ -70,9 +86,9 @@ end-of-include marker.
 
 <!-- END mdsh -->
 
-### Includes
+### Link Includes
 
-Includes work similarily to code blocks but with the link syntax.
+Link Includes work similarily to code blocks but with the link syntax.
 
 * `$` loads the file and embeds it as a code block
 * `>` loads the file and embeds it as markdown
