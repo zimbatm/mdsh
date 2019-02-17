@@ -10,16 +10,16 @@ use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, Write};
-// use std::path::Path;
+use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
-fn run_command(command: &str) -> Output {
+fn run_command(command: &str, work_dir: &Path) -> Output {
     Command::new("bash")
         .arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
         .stderr(Stdio::inherit()) // send stderr to stderr
-        // .current_dir(work_dir)
+        .current_dir(work_dir)
         .output()
         .expect("failed to execute command")
 }
@@ -114,14 +114,12 @@ fn main() -> std::io::Result<()> {
                 .default_value("README.md")
                 .index(1),
         )
-        /*
         .arg(
             Arg::with_name("work_dir")
                 .long("work_dir")
                 .value_name("DIR")
                 .help("Directory to execute the scripts under, defaults to the input folder"),
         )
-        */
         .arg(
             Arg::with_name("output")
                 .short("o")
@@ -138,21 +136,18 @@ fn main() -> std::io::Result<()> {
 
     let clean = matches.is_present("clean");
     let input = matches.value_of("input").unwrap();
-    /*
-    let input_path = Path::new(input).canonicalize();
-    let input_dir = if input == "-" {
-        Path::new(".")
-    } else {
-        input_path.unwrap().parent().unwrap()
-    };
-    */
     let output = matches.value_of("output").unwrap_or(input);
-    /*
     let work_dir = match matches.value_of("work_dir") {
         Some(path) => Path::new(path),
-        None => input_dir,
+        None => {
+            let path = Path::new(input).parent().unwrap();
+            if path == Path::new("") {
+                Path::new(".")
+            } else {
+                path
+            }
+        },
     };
-    */
     let contents = read_file(input)?;
 
     eprintln!("Using clean={} input={} output={}", clean, input, output,);
@@ -178,7 +173,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("$ {}", command);
 
-        let result = run_command(command);
+        let result = run_command(command, work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
@@ -191,7 +186,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("> {}", command);
 
-        let result = run_command(command);
+        let result = run_command(command, work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();

@@ -21,7 +21,7 @@ Both of these cases are supported by extending the existing syntax and running
 
 `$ mdsh --help`
 ```
-mdsh 0.1.1
+mdsh 0.1.2
 zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor
 
@@ -35,6 +35,7 @@ FLAGS:
 
 OPTIONS:
     -o, --output <OUTPUT>    Path to the output file, defaults to the input value
+        --work_dir <DIR>     Directory to execute the scripts under, defaults to the input folder
 
 ARGS:
     <INPUT>    Path to the markdown file [default: README.md]
@@ -67,7 +68,7 @@ triple backtick.
 
 `$ date`
 ```
-Sat Feb 16 21:33:35 CET 2019
+Sun Feb 17 21:54:02 CET 2019
 ```
 
 NOTE: the block removal algorithm doesn't support output that contains the
@@ -76,7 +77,7 @@ comment markers.
 `> nix-info --markdown`
 <!-- BEGIN mdsh -->
  - system: `"x86_64-linux"`
- - host os: `Linux 4.20.7, NixOS, 19.03.git.0309b923a25M (Koi)`
+ - host os: `Linux 4.20.7, NixOS, 19.03.git.d62d4bc3864M (Koi)`
  - multi-user?: `yes`
  - sandbox: `yes`
  - version: `nix-env (Nix) 2.2`
