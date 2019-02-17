@@ -125,7 +125,7 @@ use through a [GitHub issue](https://github.com/zimbatm/mdsh/issues).
 ### Contributing
 
 You are invited to contribute new features, fixes or updates, large or small;
-we are always thrilled to receive pull requests, and do our brest ot process
+we are always thrilled to receive pull requests, and do our best to process
 them as fast as we can.
 
 ## License
