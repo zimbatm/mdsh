@@ -115,6 +115,20 @@ pp ({ foo: 3 })
 <!-- END mdsh -->
 ~~~
 
+## Installation
+
+The best way to install `mdsh` is with the rust tool cargo.
+
+```bash
+cargo install mdsh
+```
+
+If you are lucky enough to be a nix user:
+
+```bash
+nix-env -f https://github.com/NixOS/nixpkgs/archive/master.tar.gz -iA mdsh
+```
+
 ## Known issues
 
 The tool currently lacks in precision as it doesn't parse the Markdown file,
