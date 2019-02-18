@@ -45,15 +45,16 @@ ARGS:
 
 ### Inline Shell Code
 
-Inline Shell Code are normal `inline code` with that:
+Syntax regexp:
+```regexp
+^`[$>] ([^`]+)`\s*$
+```
+
+Inline Shell Code are normal `inline code` that:
+
 * start at the beginning of a line
-* include either `$ ` or `> ` at the beginning of their content
-
-Eg:
-    `$ date`
-
-Or:
-    `> date`
+* include either `$` or `>` at the beginning of their content
+* contain a shell command
 
 When those are enountered, the command is executed by `mdsh` and output as
 either a fenced code block (`$`) or markdown code (`>`).
@@ -63,17 +64,14 @@ either a fenced code block (`$`) or markdown code (`>`).
 
 Examples:
 
-NOTE: the block removal algorithm doesn't support output that contains the
-triple backtick.
-
+~~~
 `$ date`
 ```
-Sun Feb 17 21:54:02 CET 2019
+Mon Feb 18 19:20:19 CET 2019
 ```
+~~~
 
-NOTE: the block removal algorithm doesn't support output that contains the
-comment markers.
-
+~~~
 `> nix-info --markdown`
 <!-- BEGIN mdsh -->
  - system: `"x86_64-linux"`
@@ -84,10 +82,15 @@ comment markers.
  - channels(root): `""`
  - channels(zimbatm): `""`
  - nixpkgs: `/home/zimbatm/go/src/github.com/nixos/nixpkgs-zimbatm`
-
 <!-- END mdsh -->
+~~~
 
 ### Link Includes
+
+Syntax regexp:
+```regexp
+^\[[$>] ([^\]]+)]\([^\)]+\)\s*$
+```
 
 Link Includes work similarily to code blocks but with the link syntax.
 
@@ -96,25 +99,32 @@ Link Includes work similarily to code blocks but with the link syntax.
 
 Examples:
 
+~~~
 [$ code.rb](code.rb)
 ```
 require "pp"
 
 pp ({ foo: 3 })
 ```
+~~~
 
+~~~
 [> example.md](example.md)
 <!-- BEGIN mdsh -->
 *this is part of the example.md file*
 <!-- END mdsh -->
+~~~
 
 ## Known issues
 
-The tool currently lacks in precision as it doesn't parse the Markdown file.
-It means that in some cases it might misintepret some of the commands.
+The tool currently lacks in precision as it doesn't parse the Markdown file,
+it just looks for the desired blocks by regexp. It means that in some cases it
+might misintepret some of the commands. Most existing Markdown parsers are
+used to generate HTML in the end and are thus not position-preserving. Eg:
+pulldown-cmark
 
-Most existing Markdown parsers are used to generate HTML in the end and are
-thus not position-preserving. Eg: pulldown-cmark
+The block removal algorithm doesn't support output that contains triple
+backtick or `<!-- END mdsh -->`.
 
 ## User Feedback
 
