@@ -21,7 +21,7 @@ Both of these cases are supported by extending the existing syntax and running
 
 `$ mdsh --help`
 ```
-mdsh 0.1.2
+mdsh 0.1.3
 zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor
 
@@ -66,7 +66,7 @@ Examples:
 ~~~
 `$ date`
 ```
-Mon Feb 18 21:28:47 CET 2019
+Mon Feb 18 22:47:07 CET 2019
 ```
 ~~~
 
