@@ -53,14 +53,19 @@ fn write_file(path: &str, contents: String) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+fn trail_nl<T: AsRef<str>>(s: T) -> String {
+    let r = s.as_ref();
+    if r.ends_with("\n") {
+        r.to_string()
+    } else {
+        format!("{}\n", r)
+    }
+}
+
 // make sure that the string starts and ends with new lines
-fn wrap_nl<'a>(s: String) -> String {
+fn wrap_nl(s: String) -> String {
     if s.starts_with("\n") {
-        if s.ends_with("\n") {
-            s
-        } else {
-            format!("{}\n", s)
-        }
+        trail_nl(s)
     } else {
         if s.ends_with("\n") {
             format!("\n{}", s)
@@ -78,17 +83,19 @@ lazy_static! {
     static ref RE_MD_BLOCK_STR: String = String::from(r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->");
     static ref RE_FENCE_BLOCK_STR: String = String::from(r"^```.+?^```");
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})[\s\n]+{}",
+        r"(?sm)({}|{})[\s\n]+({}|{})",
         RE_FENCE_COMMAND_STR.to_string(),
         RE_FENCE_LINK_STR.to_string(),
-        RE_FENCE_BLOCK_STR.to_string()
+        RE_FENCE_BLOCK_STR.to_string(),
+        RE_MD_BLOCK_STR.to_string(),
     );
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})[\s\n]+{}",
+        r"(?sm)({}|{})[\s\n]+({}|{})",
         RE_MD_COMMAND_STR.to_string(),
         RE_MD_LINK_STR.to_string(),
-        RE_MD_BLOCK_STR.to_string()
+        RE_MD_BLOCK_STR.to_string(),
+        RE_FENCE_BLOCK_STR.to_string(),
     );
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
     static ref RE_MATCH_FENCE_COMMAND_STR: String =
@@ -178,7 +185,7 @@ fn main() -> std::io::Result<()> {
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
 
-        format!("{}```{}```\n", &caps[0], wrap_nl(stdout))
+        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(stdout))
     });
 
     let contents = RE_MATCH_MD_COMMAND.replace_all(&contents, |caps: &Captures| {
@@ -192,8 +199,8 @@ fn main() -> std::io::Result<()> {
         let stdout = String::from_utf8(result.stdout).unwrap();
 
         format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n",
-            &caps[0],
+            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
+            trail_nl(&caps[0]),
             wrap_nl(stdout)
         )
     });
@@ -205,7 +212,7 @@ fn main() -> std::io::Result<()> {
 
         let result = read_file(link).unwrap_or(String::from("[mdsh error]: failed to read file"));
 
-        format!("{}```{}```\n", &caps[0], wrap_nl(result))
+        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
     });
 
     let contents = RE_MATCH_MD_LINK.replace_all(&contents, |caps: &Captures| {
@@ -216,8 +223,8 @@ fn main() -> std::io::Result<()> {
         let result = read_file(link).unwrap_or(String::from("failed to read file"));
 
         format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->\n",
-            &caps[0],
+            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
+            trail_nl(&caps[0]),
             wrap_nl(result)
         )
     });

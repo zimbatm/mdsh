@@ -40,7 +40,6 @@ OPTIONS:
 ARGS:
     <INPUT>    Path to the markdown file [default: README.md]
 ```
-
 ## Syntax Extensions
 
 ### Inline Shell Code
@@ -67,7 +66,7 @@ Examples:
 ~~~
 `$ date`
 ```
-Mon Feb 18 19:20:19 CET 2019
+Mon Feb 18 21:28:47 CET 2019
 ```
 ~~~
 
@@ -82,6 +81,7 @@ Mon Feb 18 19:20:19 CET 2019
  - channels(root): `""`
  - channels(zimbatm): `""`
  - nixpkgs: `/home/zimbatm/go/src/github.com/nixos/nixpkgs-zimbatm`
+
 <!-- END mdsh -->
 ~~~
 
