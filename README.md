@@ -23,7 +23,7 @@ Both of these cases are supported by extending the existing syntax and running
 ```
 mdsh 0.1.3
 zimbatm <zimbatm@zimbatm.com>
-Markdown shell pre-processor
+markdown shell pre-processor
 
 USAGE:
     mdsh [FLAGS] [OPTIONS] [INPUT]

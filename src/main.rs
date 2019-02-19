@@ -5,7 +5,7 @@ extern crate lazy_static;
 extern crate clap;
 extern crate regex;
 
-use clap::{App, Arg};
+use clap::Arg;
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
@@ -110,10 +110,7 @@ lazy_static! {
 }
 
 fn main() -> std::io::Result<()> {
-    let matches = App::new("mdsh")
-        .about("Markdown shell pre-processor")
-        .author("zimbatm <zimbatm@zimbatm.com>")
-        .version(crate_version!())
+    let matches = app_from_crate!()
         .arg(
             Arg::with_name("input")
                 .value_name("INPUT")
@@ -153,7 +150,7 @@ fn main() -> std::io::Result<()> {
             } else {
                 path
             }
-        },
+        }
     };
     let contents = read_file(input)?;
 
