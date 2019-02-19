@@ -140,6 +140,19 @@ pulldown-cmark
 The block removal algorithm doesn't support output that contains triple
 backtick or `<!-- END mdsh -->`.
 
+## Related projects
+
+* http://chriswarbo.net/essays/activecode/ is the closest to this project. It
+  has some interesting Pandoc filters that capture code blocks into outputs.
+  The transformation is not in-place like `mdsh`.
+* [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming)
+  is the practice of interspesing executable code into documents. There are
+  many language-specific implementations out there. `mdsh` is a bit like a
+  bash literate programming language.
+* [Jupyter Notebooks](https://jupyter.org/) is a whole other universe of
+  documentation and code. It's great but stores the notebooks as JSON files. A
+  special viewer program is required to render them to HTML or text.
+
 ## User Feedback
 
 ### Issues
