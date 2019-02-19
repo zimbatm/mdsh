@@ -1,4 +1,4 @@
-# mdsh - Markdown shell pre-processor
+# $ mdsh # markdown shell pre-processor
 
 [![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
