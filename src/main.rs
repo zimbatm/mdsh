@@ -69,15 +69,7 @@ fn wrap_nl(s: String) -> String {
     } else if s.ends_with('\n') {
         format!("\n{}", s)
     } else {
-<<<<<<< HEAD
         format!("\n{}\n", s)
-=======
-        if s.ends_with('\n') {
-            format!("\n{}", s)
-        } else {
-            format!("\n{}\n", s)
-        }
->>>>>>> a0bbf2e6550e381e168e404515b8994e8cd87e06
     }
 }
 
