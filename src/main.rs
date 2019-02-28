@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate structopt;
 extern crate regex;
+extern crate structopt;
 
 use regex::{Captures, Regex};
 use std::fs::File;
@@ -55,7 +55,7 @@ fn write_file<T: AsRef<str>>(path: T, contents: String) -> Result<(), std::io::E
 
 fn trail_nl<T: AsRef<str>>(s: T) -> String {
     let r = s.as_ref();
-    if r.ends_with("\n") {
+    if r.ends_with('\n') {
         r.to_string()
     } else {
         format!("{}\n", r)
@@ -64,14 +64,12 @@ fn trail_nl<T: AsRef<str>>(s: T) -> String {
 
 // make sure that the string starts and ends with new lines
 fn wrap_nl(s: String) -> String {
-    if s.starts_with("\n") {
+    if s.starts_with('\n') {
         trail_nl(s)
+    } else if s.ends_with('\n') {
+        format!("\n{}", s)
     } else {
-        if s.ends_with("\n") {
-            format!("\n{}", s)
-        } else {
-            format!("\n{}\n", s)
-        }
+        format!("\n{}\n", s)
     }
 }
 
@@ -111,18 +109,21 @@ lazy_static! {
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mdsh", about = "markdown shell pre-processor")]
-struct Opt<'a> {
+struct Opt {
     /// Path to the markdown file
-    #[structopt(default_value = "README.md")]
-    input: &'a str,
+    #[structopt(long = "input", default_value = "README.md")]
+    input: String,
+
     /// Path to the output file, defaults to the input value
-    #[structopt()]
-    output: Option<&'a str>,
+    #[structopt(long = "output")]
+    output: Option<String>,
+
     /// Directory to execute the scripts under, defaults to the input folder
-    #[structopt(parse(from_os_str))]
+    #[structopt(long = "work-dir", parse(from_os_str))]
     work_dir: Option<PathBuf>,
+
     /// Only clean the file from blocks
-    #[structopt()]
+    #[structopt(long = "clean")]
     clean: bool,
 }
 
@@ -130,36 +131,36 @@ fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
     let input = opt.input;
-    let output = opt.output.unwrap_or(input);
+    let output = opt.output.unwrap_or_else(|| input.clone());
     let work_dir = match opt.work_dir {
         Some(path) => path,
         None => {
-            let path = match Path::new(input).parent() {
+            let path = match Path::new(&input).parent() {
                 Some(path) => {
                     if path == Path::new("") {
                         Path::new(".")
                     } else {
                         path
                     }
-                },
+                }
                 // FIXME: crash here
                 None => Path::new("."),
             };
             path.to_path_buf()
         }
     };
-    let contents = read_file(input)?;
+    let contents = read_file(&input)?;
 
-    eprintln!("Using clean={} input={} output={}", clean, input, output,);
+    eprintln!("Using clean={} input={} output={}", clean, &input, output,);
 
     let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
         // println!("caps1: {:?}", caps);
-        format!("{}", &caps[1])
+        caps[1].to_string()
     });
 
     let contents = RE_MATCH_MD_BLOCK.replace_all(&contents, |caps: &Captures| {
         // println!("caps2: {:?}", caps);
-        format!("{}", &caps[1])
+        caps[1].to_string()
     });
 
     // Write the contents and return if --clean is passed
@@ -203,7 +204,8 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[$ {}]", link);
 
-        let result = read_file(link).unwrap_or(String::from("[mdsh error]: failed to read file"));
+        let result =
+            read_file(link).unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
 
         format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
     });
@@ -213,7 +215,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[> {}]", link);
 
-        let result = read_file(link).unwrap_or(String::from("failed to read file"));
+        let result = read_file(link).unwrap_or_else(|_| String::from("failed to read file"));
 
         format!(
             "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
