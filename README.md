@@ -26,7 +26,7 @@ zimbatm <zimbatm@zimbatm.com>
 markdown shell pre-processor
 
 USAGE:
-    mdsh [FLAGS] [OPTIONS] [INPUT]
+    mdsh [FLAGS] [OPTIONS] [input]
 
 FLAGS:
         --clean      Only clean the file from blocks
@@ -34,11 +34,11 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -o, --output <OUTPUT>    Path to the output file, defaults to the input value
-        --work_dir <DIR>     Directory to execute the scripts under, defaults to the input folder
+    -o, --output <output>        Path to the output file, defaults to the input value
+        --work_dir <work_dir>    Directory to execute the scripts under, defaults to the input folder
 
 ARGS:
-    <INPUT>    Path to the markdown file [default: README.md]
+    <input>    Path to the markdown file [default: README.md]
 ```
 ## Syntax Extensions
 
@@ -66,7 +66,7 @@ Examples:
 ~~~
 `$ date`
 ```
-Mon Feb 18 22:47:07 CET 2019
+Thu Feb 28 19:15:39 CET 2019
 ```
 ~~~
 
@@ -74,7 +74,7 @@ Mon Feb 18 22:47:07 CET 2019
 `> nix-info --markdown`
 <!-- BEGIN mdsh -->
  - system: `"x86_64-linux"`
- - host os: `Linux 4.20.7, NixOS, 19.03.git.d62d4bc3864M (Koi)`
+ - host os: `Linux 4.20.12, NixOS, 19.09.git.b490f243b11M (Loris)`
  - multi-user?: `yes`
  - sandbox: `yes`
  - version: `nix-env (Nix) 2.2`

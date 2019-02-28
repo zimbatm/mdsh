@@ -1,17 +1,15 @@
 #[macro_use]
 extern crate lazy_static;
-
-#[macro_use]
-extern crate clap;
 extern crate regex;
+extern crate structopt;
 
-use clap::Arg;
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
+use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Path) -> Output {
     Command::new("bash")
@@ -24,7 +22,8 @@ fn run_command(command: &str, work_dir: &Path) -> Output {
         .expect("failed to execute command")
 }
 
-fn read_file(path: &str) -> Result<String, std::io::Error> {
+fn read_file<T: AsRef<str>>(p: T) -> Result<String, std::io::Error> {
+    let path = p.as_ref();
     let mut buffer = String::new();
 
     if path == "-" {
@@ -39,13 +38,14 @@ fn read_file(path: &str) -> Result<String, std::io::Error> {
     Ok(buffer)
 }
 
-fn write_file(path: &str, contents: String) -> Result<(), std::io::Error> {
-    if path == "-" {
+fn write_file<T: AsRef<str>>(path: T, contents: String) -> Result<(), std::io::Error> {
+    let p = path.as_ref();
+    if p == "-" {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
         write!(handle, "{}", contents)?;
     } else {
-        let mut file = File::create(path)?;
+        let mut file = File::create(p)?;
         write!(file, "{}", contents)?;
         file.sync_all()?;
     }
@@ -55,7 +55,7 @@ fn write_file(path: &str, contents: String) -> Result<(), std::io::Error> {
 
 fn trail_nl<T: AsRef<str>>(s: T) -> String {
     let r = s.as_ref();
-    if r.ends_with("\n") {
+    if r.ends_with('\n') {
         r.to_string()
     } else {
         format!("{}\n", r)
@@ -64,14 +64,12 @@ fn trail_nl<T: AsRef<str>>(s: T) -> String {
 
 // make sure that the string starts and ends with new lines
 fn wrap_nl(s: String) -> String {
-    if s.starts_with("\n") {
+    if s.starts_with('\n') {
         trail_nl(s)
+    } else if s.ends_with('\n') {
+        format!("\n{}", s)
     } else {
-        if s.ends_with("\n") {
-            format!("\n{}", s)
-        } else {
-            format!("\n{}\n", s)
-        }
+        format!("\n{}\n", s)
     }
 }
 
@@ -109,61 +107,58 @@ lazy_static! {
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
-fn main() -> std::io::Result<()> {
-    let matches = app_from_crate!()
-        .arg(
-            Arg::with_name("input")
-                .value_name("INPUT")
-                .help("Path to the markdown file")
-                .default_value("README.md")
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("work_dir")
-                .long("work_dir")
-                .value_name("DIR")
-                .help("Directory to execute the scripts under, defaults to the input folder"),
-        )
-        .arg(
-            Arg::with_name("output")
-                .short("o")
-                .long("output")
-                .value_name("OUTPUT")
-                .help("Path to the output file, defaults to the input value"),
-        )
-        .arg(
-            Arg::with_name("clean")
-                .long("clean")
-                .help("Only clean the file from blocks"),
-        )
-        .get_matches();
+#[derive(Debug, StructOpt)]
+#[structopt(name = "mdsh", about = "markdown shell pre-processor")]
+struct Opt {
+    /// Path to the markdown file
+    #[structopt(short = "i", long = "input", default_value = "README.md")]
+    input: String,
+    /// Path to the output file, defaults to the input value
+    #[structopt(short = "o", long = "output")]
+    output: Option<String>,
+    /// Directory to execute the scripts under, defaults to the input folder
+    #[structopt(long = "work_dir", parse(from_os_str))]
+    work_dir: Option<PathBuf>,
 
-    let clean = matches.is_present("clean");
-    let input = matches.value_of("input").unwrap();
-    let output = matches.value_of("output").unwrap_or(input);
-    let work_dir = match matches.value_of("work_dir") {
-        Some(path) => Path::new(path),
+    /// Only clean the file from blocks
+    #[structopt(long = "clean")]
+    clean: bool,
+}
+
+fn main() -> std::io::Result<()> {
+    let opt = Opt::from_args();
+    let clean = opt.clean;
+    let input = opt.input;
+    let output = opt.output.unwrap_or_else(|| input.clone());
+    let work_dir = match opt.work_dir {
+        Some(path) => path,
         None => {
-            let path = Path::new(input).parent().unwrap();
-            if path == Path::new("") {
-                Path::new(".")
-            } else {
-                path
-            }
+            let path = match Path::new(&input).parent() {
+                Some(path) => {
+                    if path == Path::new("") {
+                        Path::new(".")
+                    } else {
+                        path
+                    }
+                }
+                // FIXME: crash here
+                None => Path::new("."),
+            };
+            path.to_path_buf()
         }
     };
-    let contents = read_file(input)?;
+    let contents = read_file(&input)?;
 
-    eprintln!("Using clean={} input={} output={}", clean, input, output,);
+    eprintln!("Using clean={} input={} output={}", clean, &input, output,);
 
     let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
         // println!("caps1: {:?}", caps);
-        format!("{}", &caps[1])
+        caps[1].to_string()
     });
 
     let contents = RE_MATCH_MD_BLOCK.replace_all(&contents, |caps: &Captures| {
         // println!("caps2: {:?}", caps);
-        format!("{}", &caps[1])
+        caps[1].to_string()
     });
 
     // Write the contents and return if --clean is passed
@@ -177,7 +172,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("$ {}", command);
 
-        let result = run_command(command, work_dir);
+        let result = run_command(command, &work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
@@ -190,7 +185,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("> {}", command);
 
-        let result = run_command(command, work_dir);
+        let result = run_command(command, &work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
@@ -207,7 +202,8 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[$ {}]", link);
 
-        let result = read_file(link).unwrap_or(String::from("[mdsh error]: failed to read file"));
+        let result =
+            read_file(link).unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
 
         format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
     });
@@ -217,7 +213,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[> {}]", link);
 
-        let result = read_file(link).unwrap_or(String::from("failed to read file"));
+        let result = read_file(link).unwrap_or_else(|_| String::from("failed to read file"));
 
         format!(
             "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
