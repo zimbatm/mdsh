@@ -69,7 +69,15 @@ fn wrap_nl(s: String) -> String {
     } else if s.ends_with('\n') {
         format!("\n{}", s)
     } else {
+<<<<<<< HEAD
         format!("\n{}\n", s)
+=======
+        if s.ends_with('\n') {
+            format!("\n{}", s)
+        } else {
+            format!("\n{}\n", s)
+        }
+>>>>>>> a0bbf2e6550e381e168e404515b8994e8cd87e06
     }
 }
 
@@ -111,15 +119,13 @@ lazy_static! {
 #[structopt(name = "mdsh", about = "markdown shell pre-processor")]
 struct Opt {
     /// Path to the markdown file
-    #[structopt(long = "input", default_value = "README.md")]
+    #[structopt(short = "i", long = "input", default_value = "README.md")]
     input: String,
-
     /// Path to the output file, defaults to the input value
-    #[structopt(long = "output")]
+    #[structopt(short = "o", long = "output")]
     output: Option<String>,
-
     /// Directory to execute the scripts under, defaults to the input folder
-    #[structopt(long = "work-dir", parse(from_os_str))]
+    #[structopt(long = "work_dir", parse(from_os_str))]
     work_dir: Option<PathBuf>,
 
     /// Only clean the file from blocks
