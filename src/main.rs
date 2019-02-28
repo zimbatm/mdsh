@@ -1,17 +1,15 @@
 #[macro_use]
 extern crate lazy_static;
-
-#[macro_use]
-extern crate clap;
+extern crate structopt;
 extern crate regex;
 
-use clap::Arg;
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
+use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Path) -> Output {
     Command::new("bash")
@@ -24,7 +22,8 @@ fn run_command(command: &str, work_dir: &Path) -> Output {
         .expect("failed to execute command")
 }
 
-fn read_file(path: &str) -> Result<String, std::io::Error> {
+fn read_file<T: AsRef<str>>(p: T) -> Result<String, std::io::Error> {
+    let path = p.as_ref();
     let mut buffer = String::new();
 
     if path == "-" {
@@ -39,13 +38,14 @@ fn read_file(path: &str) -> Result<String, std::io::Error> {
     Ok(buffer)
 }
 
-fn write_file(path: &str, contents: String) -> Result<(), std::io::Error> {
-    if path == "-" {
+fn write_file<T: AsRef<str>>(path: T, contents: String) -> Result<(), std::io::Error> {
+    let p = path.as_ref();
+    if p == "-" {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
         write!(handle, "{}", contents)?;
     } else {
-        let mut file = File::create(path)?;
+        let mut file = File::create(p)?;
         write!(file, "{}", contents)?;
         file.sync_all()?;
     }
@@ -109,47 +109,43 @@ lazy_static! {
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
-fn main() -> std::io::Result<()> {
-    let matches = app_from_crate!()
-        .arg(
-            Arg::with_name("input")
-                .value_name("INPUT")
-                .help("Path to the markdown file")
-                .default_value("README.md")
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("work_dir")
-                .long("work_dir")
-                .value_name("DIR")
-                .help("Directory to execute the scripts under, defaults to the input folder"),
-        )
-        .arg(
-            Arg::with_name("output")
-                .short("o")
-                .long("output")
-                .value_name("OUTPUT")
-                .help("Path to the output file, defaults to the input value"),
-        )
-        .arg(
-            Arg::with_name("clean")
-                .long("clean")
-                .help("Only clean the file from blocks"),
-        )
-        .get_matches();
+#[derive(Debug, StructOpt)]
+#[structopt(name = "mdsh", about = "markdown shell pre-processor")]
+struct Opt<'a> {
+    /// Path to the markdown file
+    #[structopt(default_value = "README.md")]
+    input: &'a str,
+    /// Path to the output file, defaults to the input value
+    #[structopt()]
+    output: Option<&'a str>,
+    /// Directory to execute the scripts under, defaults to the input folder
+    #[structopt(parse(from_os_str))]
+    work_dir: Option<PathBuf>,
+    /// Only clean the file from blocks
+    #[structopt()]
+    clean: bool,
+}
 
-    let clean = matches.is_present("clean");
-    let input = matches.value_of("input").unwrap();
-    let output = matches.value_of("output").unwrap_or(input);
-    let work_dir = match matches.value_of("work_dir") {
-        Some(path) => Path::new(path),
+fn main() -> std::io::Result<()> {
+    let opt = Opt::from_args();
+    let clean = opt.clean;
+    let input = opt.input;
+    let output = opt.output.unwrap_or(input);
+    let work_dir = match opt.work_dir {
+        Some(path) => path,
         None => {
-            let path = Path::new(input).parent().unwrap();
-            if path == Path::new("") {
-                Path::new(".")
-            } else {
-                path
-            }
+            let path = match Path::new(input).parent() {
+                Some(path) => {
+                    if path == Path::new("") {
+                        Path::new(".")
+                    } else {
+                        path
+                    }
+                },
+                // FIXME: crash here
+                None => Path::new("."),
+            };
+            path.to_path_buf()
         }
     };
     let contents = read_file(input)?;
@@ -177,7 +173,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("$ {}", command);
 
-        let result = run_command(command, work_dir);
+        let result = run_command(command, &work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
@@ -190,7 +186,7 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("> {}", command);
 
-        let result = run_command(command, work_dir);
+        let result = run_command(command, &work_dir);
 
         // TODO: if there is an error, write to stdout
         let stdout = String::from_utf8(result.stdout).unwrap();
