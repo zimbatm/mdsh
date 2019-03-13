@@ -21,3 +21,6 @@ regex = "1.1.0"
 lazy_static = "1.2.0"
 structopt = "0.2.14"
 diff = "0.1.11"
+
+[dev-dependencies]
+clippy = "0.0.302"
