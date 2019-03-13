@@ -1,3 +1,4 @@
+extern crate diff;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
@@ -6,7 +7,7 @@ extern crate structopt;
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, Write};
+use std::io::{self, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use structopt::StructOpt;
@@ -113,12 +114,18 @@ struct Opt {
     /// Path to the markdown file
     #[structopt(short = "i", long = "input", default_value = "README.md")]
     input: String,
+
     /// Path to the output file, defaults to the input value
     #[structopt(short = "o", long = "output")]
     output: Option<String>,
+
     /// Directory to execute the scripts under, defaults to the input folder
     #[structopt(long = "work_dir", parse(from_os_str))]
     work_dir: Option<PathBuf>,
+
+    /// Fail if the output is not the same as before. Useful for CI.
+    #[structopt(long = "frozen")]
+    frozen: bool,
 
     /// Only clean the file from blocks
     #[structopt(long = "clean")]
@@ -128,6 +135,7 @@ struct Opt {
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
+    let frozen = opt.frozen;
     let input = opt.input;
     let output = opt.output.unwrap_or_else(|| input.clone());
     let work_dir = match opt.work_dir {
@@ -147,7 +155,8 @@ fn main() -> std::io::Result<()> {
             path.to_path_buf()
         }
     };
-    let contents = read_file(&input)?;
+    let original_contents = read_file(&input)?;
+    let contents = original_contents.clone();
 
     eprintln!("Using clean={} input={} output={}", clean, &input, output,);
 
@@ -221,6 +230,31 @@ fn main() -> std::io::Result<()> {
             wrap_nl(result)
         )
     });
+
+    // Special path if the file is frozen
+    if frozen {
+        if original_contents == contents {
+            return Ok(());
+        }
+
+        eprintln!("Found differences in output:");
+        let mut line = 0;
+        for diff in diff::lines(&original_contents, &contents) {
+            match diff {
+                diff::Result::Left(l) => {
+                    line += 1;
+                    eprintln!("{}- {}", line, l)
+                },
+                diff::Result::Both(_, _) => {
+                    // nothing changed, just increase the line number
+                    line += 1
+                },
+                diff::Result::Right(l) => eprintln!("{}+ {}", line, l)
+            };
+        }
+
+        return Err(std::io::Error::new(ErrorKind::Other, "--frozen: input is not the same"));
+    }
 
     write_file(output, contents.to_string())?;
 
