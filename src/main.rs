@@ -13,14 +13,29 @@ use std::process::{Command, Output, Stdio};
 use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Path) -> Output {
-    Command::new("bash")
+    let result = Command::new("bash")
         .arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
         .stderr(Stdio::inherit()) // send stderr to stderr
         .current_dir(work_dir)
         .output()
-        .expect("failed to execute command")
+        .expect("failed to execute command");
+
+    if !result.status.success() {
+        match result.status.code() {
+            Some(code) => {
+                eprintln!("abort: exited with status code: {}", code);
+                ::std::process::exit(code)
+            },
+            None       => {
+                eprintln!("abort: process terminated by signal");
+                ::std::process::exit(1)
+            }
+        }
+    }
+
+    return result
 }
 
 fn read_file<T: AsRef<str>>(p: T) -> Result<String, std::io::Error> {
