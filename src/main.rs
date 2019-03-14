@@ -177,20 +177,26 @@ impl FromStr for FileArg {
 struct Parent(PathBuf);
 
 impl Parent {
-    /// Create from a `Path`, falling back to "." if necessary.
+    /// Create from a `Path`, falling back to the
+    /// `current_dir()` if necessary.
     /// Panics if the input is the root path (`/`).
     pub fn of(p: &Path) -> Self {
         let prnt = p.parent().unwrap();
-        Parent(if prnt.as_os_str().is_empty() {
-            PathBuf::from(".")
+        if prnt.as_os_str().is_empty() {
+            Self::current_dir()
         } else {
-            prnt.to_path_buf()
-        })
+            Parent(prnt.to_path_buf())
+        }
     }
 
-    /// Creates a `Parent` that is the current directory (`.`).
+    /// Creates a `Parent` that is the current directory.
+    /// Asks the operating system for the path.
     pub fn current_dir() -> Self {
-        Parent(PathBuf::from("."))
+        Parent(
+            std::env::current_dir().expect(
+                "fatal: current working directory not accessible and `--work_dir` not given",
+            ),
+        )
     }
 
     /// Convert from a `PathBuf` that is already a parent.
