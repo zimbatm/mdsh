@@ -13,13 +13,13 @@ use std::process::{Command, Output, Stdio};
 use std::str::FromStr;
 use structopt::StructOpt;
 
-fn run_command(command: &str, work_dir: &Path) -> Output {
+fn run_command(command: &str, work_dir: &Parent) -> Output {
     Command::new("bash")
         .arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
         .stderr(Stdio::inherit()) // send stderr to stderr
-        .current_dir(work_dir)
+        .current_dir(work_dir.as_path_buf())
         .output()
         .expect("failed to execute command")
 }
@@ -145,19 +145,14 @@ enum FileArg {
 }
 
 impl FileArg {
-    /// Return the parent, if it is a `StdHandle` use `std_handle_default`
-    pub fn parent<'a>(&'a self, std_handle_default: &'a Path) -> &'a Path {
+    /// Return the parent, if it is a `StdHandle` use the current directory
+    pub fn parent(&self) -> Parent {
         match self {
-            FileArg::StdHandle => std_handle_default,
-            FileArg::File(buf) => {
-                // we are sure that this always succeeds, we checked in parse
-                let p = buf.parent().unwrap();
-                // TODO: move this logic to a `Parent` type
-                if p.as_os_str().is_empty() {
-                    Path::new(".")
-                } else {
-                    p
-                }
+            FileArg::StdHandle => Parent::current_dir(),
+            FileArg::File(buf) =>
+            // we are sure that this is never `/`, we checked in parse
+            {
+                Parent::of(buf)
             }
         }
     }
@@ -178,16 +173,46 @@ impl FromStr for FileArg {
     }
 }
 
+/// Parent path, gracefully handling relative path inputs
+struct Parent(PathBuf);
+
+impl Parent {
+    /// Create from a `Path`, falling back to "." if necessary.
+    /// Panics if the input is the root path (`/`).
+    pub fn of(p: &Path) -> Self {
+        let prnt = p.parent().unwrap();
+        Parent(if prnt.as_os_str().is_empty() {
+            PathBuf::from(".")
+        } else {
+            prnt.to_path_buf()
+        })
+    }
+
+    /// Creates a `Parent` that is the current directory (`.`).
+    pub fn current_dir() -> Self {
+        Parent(PathBuf::from("."))
+    }
+
+    /// Convert from a `PathBuf` that is already a parent.
+    pub fn from_parent_path_buf(buf: PathBuf) -> Self {
+        Parent(buf)
+    }
+
+    pub fn as_path_buf(&self) -> &PathBuf {
+        &self.0
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
     let frozen = opt.frozen;
     let input = opt.input;
     let output = opt.output.unwrap_or_else(|| input.clone());
-    let work_dir = opt
-        .work_dir
-        // TODO: put this logic into a `Parent` type
-        .unwrap_or(input.parent(Path::new(".")).to_path_buf());
+    let work_dir: Parent = opt.work_dir.map_or_else(
+        || input.clone().parent(),
+        |buf| Parent::from_parent_path_buf(buf),
+    );
     let original_contents = read_file(&input)?;
     let contents = original_contents.clone();
 
