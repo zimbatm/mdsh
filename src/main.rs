@@ -10,6 +10,7 @@ use std::io::prelude::*;
 use std::io::{self, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
+use std::str::FromStr;
 use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Path) -> Output {
@@ -23,32 +24,36 @@ fn run_command(command: &str, work_dir: &Path) -> Output {
         .expect("failed to execute command")
 }
 
-fn read_file<T: AsRef<str>>(p: T) -> Result<String, std::io::Error> {
-    let path = p.as_ref();
+fn read_file(f: &FileArg) -> Result<String, std::io::Error> {
     let mut buffer = String::new();
 
-    if path == "-" {
-        let stdin = io::stdin();
-        let mut handle = stdin.lock();
-        handle.read_to_string(&mut buffer)?;
-    } else {
-        let mut file = File::open(path)?;
-        file.read_to_string(&mut buffer)?;
+    match f {
+        FileArg::StdHandle => {
+            let stdin = io::stdin();
+            let mut handle = stdin.lock();
+            handle.read_to_string(&mut buffer)?;
+        }
+        FileArg::File(path_buf) => {
+            let mut file = File::open(path_buf)?;
+            file.read_to_string(&mut buffer)?;
+        }
     }
 
     Ok(buffer)
 }
 
-fn write_file<T: AsRef<str>>(path: T, contents: String) -> Result<(), std::io::Error> {
-    let p = path.as_ref();
-    if p == "-" {
-        let stdout = io::stdout();
-        let mut handle = stdout.lock();
-        write!(handle, "{}", contents)?;
-    } else {
-        let mut file = File::create(p)?;
-        write!(file, "{}", contents)?;
-        file.sync_all()?;
+fn write_file(f: &FileArg, contents: String) -> Result<(), std::io::Error> {
+    match f {
+        FileArg::StdHandle => {
+            let stdout = io::stdout();
+            let mut handle = stdout.lock();
+            write!(handle, "{}", contents)?;
+        }
+        FileArg::File(path_buf) => {
+            let mut file = File::create(path_buf)?;
+            write!(file, "{}", contents)?;
+            file.sync_all()?;
+        }
     }
 
     Ok(())
@@ -113,11 +118,11 @@ lazy_static! {
 struct Opt {
     /// Path to the markdown file
     #[structopt(short = "i", long = "input", default_value = "README.md")]
-    input: String,
+    input: FileArg,
 
     /// Path to the output file, defaults to the input value
     #[structopt(short = "o", long = "output")]
-    output: Option<String>,
+    output: Option<FileArg>,
 
     /// Directory to execute the scripts under, defaults to the input folder
     #[structopt(long = "work_dir", parse(from_os_str))]
@@ -132,33 +137,64 @@ struct Opt {
     clean: bool,
 }
 
+#[derive(Debug, Clone)]
+enum FileArg {
+    /// equal to - (so stdin or stdout)
+    StdHandle,
+    File(PathBuf),
+}
+
+impl FileArg {
+    /// Return the parent, if it is a `StdHandle` use `std_handle_default`
+    pub fn parent<'a>(&'a self, std_handle_default: &'a Path) -> &'a Path {
+        match self {
+            FileArg::StdHandle => std_handle_default,
+            FileArg::File(buf) => {
+                // we are sure that this always succeeds, we checked in parse
+                let p = buf.parent().unwrap();
+                // TODO: move this logic to a `Parent` type
+                if p.as_os_str().is_empty() {
+                    Path::new(".")
+                } else {
+                    p
+                }
+            }
+        }
+    }
+
+    /// return a `FileArg::File`, don’t parse
+    fn from_str_unsafe(s: &str) -> Self {
+        FileArg::File(PathBuf::from(s))
+    }
+}
+
+impl FromStr for FileArg {
+    type Err = std::string::ParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "-" => Ok(FileArg::StdHandle),
+            p => Ok(FileArg::File(PathBuf::from(p))),
+        }
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
     let frozen = opt.frozen;
     let input = opt.input;
     let output = opt.output.unwrap_or_else(|| input.clone());
-    let work_dir = match opt.work_dir {
-        Some(path) => path,
-        None => {
-            let path = match Path::new(&input).parent() {
-                Some(path) => {
-                    if path == Path::new("") {
-                        Path::new(".")
-                    } else {
-                        path
-                    }
-                }
-                // FIXME: crash here
-                None => Path::new("."),
-            };
-            path.to_path_buf()
-        }
-    };
+    let work_dir = opt
+        .work_dir
+        // TODO: put this logic into a `Parent` type
+        .unwrap_or(input.parent(Path::new(".")).to_path_buf());
     let original_contents = read_file(&input)?;
     let contents = original_contents.clone();
 
-    eprintln!("Using clean={} input={} output={}", clean, &input, output,);
+    eprintln!(
+        "Using clean={:?} input={:?} output={:?}",
+        clean, &input, output,
+    );
 
     let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
         // println!("caps1: {:?}", caps);
@@ -172,7 +208,7 @@ fn main() -> std::io::Result<()> {
 
     // Write the contents and return if --clean is passed
     if clean {
-        write_file(output, contents.to_string())?;
+        write_file(&output, contents.to_string())?;
         return Ok(());
     }
 
@@ -211,8 +247,8 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[$ {}]", link);
 
-        let result =
-            read_file(link).unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
+        let result = read_file(&FileArg::from_str_unsafe(link))
+            .unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
 
         format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
     });
@@ -222,7 +258,8 @@ fn main() -> std::io::Result<()> {
 
         eprintln!("[> {}]", link);
 
-        let result = read_file(link).unwrap_or_else(|_| String::from("failed to read file"));
+        let result = read_file(&FileArg::from_str_unsafe(link))
+            .unwrap_or_else(|_| String::from("failed to read file"));
 
         format!(
             "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
@@ -259,7 +296,7 @@ fn main() -> std::io::Result<()> {
         ));
     }
 
-    write_file(output, contents.to_string())?;
+    write_file(&output, contents.to_string())?;
 
     Ok(())
 }
