@@ -15,7 +15,7 @@ use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
     let mut cli = Command::new("bash");
-    cli.arg("-c")
+    let result = cli.arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
         .current_dir(work_dir.as_path_buf())
@@ -27,7 +27,22 @@ fn run_command(command: &str, work_dir: &Parent) -> Output {
                 work_dir.as_path_buf().display()
             )
             .as_str(),
-        )
+        );
+
+    if !result.status.success() {
+        match result.status.code() {
+            Some(code) => {
+                eprintln!("fatal: command `{:?}` exited with status code {}", cli, code);
+                ::std::process::exit(code)
+            },
+            None       => {
+                eprintln!("fatal: command `{:?}` terminated by signal", cli);
+                ::std::process::exit(1)
+            }
+        }
+    }
+
+    return result
 }
 
 fn die<A>(msg: String) -> A {
