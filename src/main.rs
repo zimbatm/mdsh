@@ -1,16 +1,16 @@
+extern crate mdsh;
 extern crate diff;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
 extern crate structopt;
 
+use mdsh::cli::{FileArg, Opt, Parent};
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, ErrorKind, Write};
-use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
-use std::str::FromStr;
 use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
@@ -111,99 +111,6 @@ lazy_static! {
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
     static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR.to_string());
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
-}
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "mdsh", about = "markdown shell pre-processor")]
-struct Opt {
-    /// Path to the markdown file
-    #[structopt(short = "i", long = "input", default_value = "README.md")]
-    input: FileArg,
-
-    /// Path to the output file, defaults to the input value
-    #[structopt(short = "o", long = "output")]
-    output: Option<FileArg>,
-
-    /// Directory to execute the scripts under, defaults to the input folder
-    #[structopt(long = "work_dir", parse(from_os_str))]
-    work_dir: Option<PathBuf>,
-
-    /// Fail if the output is not the same as before. Useful for CI.
-    #[structopt(long = "frozen")]
-    frozen: bool,
-
-    /// Only clean the file from blocks
-    #[structopt(long = "clean")]
-    clean: bool,
-}
-
-#[derive(Debug, Clone)]
-enum FileArg {
-    /// equal to - (so stdin or stdout)
-    StdHandle,
-    File(PathBuf),
-}
-
-impl FileArg {
-    /// Return the parent, if it is a `StdHandle` use the current directory.
-    /// Returns `None` if there is no parent (that is we are `/`).
-    pub fn parent(&self) -> Option<Parent> {
-        match self {
-            FileArg::StdHandle => Some(Parent::current_dir()),
-            FileArg::File(buf) => Parent::of(buf),
-        }
-    }
-
-    /// return a `FileArg::File`, don’t parse
-    fn from_str_unsafe(s: &str) -> Self {
-        FileArg::File(PathBuf::from(s))
-    }
-}
-
-impl FromStr for FileArg {
-    type Err = std::string::ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "-" => Ok(FileArg::StdHandle),
-            p => Ok(FileArg::File(PathBuf::from(p))),
-        }
-    }
-}
-
-/// Parent path, gracefully handling relative path inputs
-struct Parent(PathBuf);
-
-impl Parent {
-    /// Create from a `Path`, falling back to the
-    /// `current_dir()` if necessary.
-    /// Returns `None` if there is no parent (that is we are `/`).
-    pub fn of(p: &Path) -> Option<Self> {
-        let prnt = p.parent()?;
-        if prnt.as_os_str().is_empty() {
-            Some(Self::current_dir())
-        } else {
-            Some(Parent(prnt.to_path_buf()))
-        }
-    }
-
-    /// Creates a `Parent` that is the current directory.
-    /// Asks the operating system for the path.
-    pub fn current_dir() -> Self {
-        Parent(
-            std::env::current_dir().expect(
-                "fatal: current working directory not accessible and `--work_dir` not given",
-            ),
-        )
-    }
-
-    /// Convert from a `PathBuf` that is already a parent.
-    pub fn from_parent_path_buf(buf: PathBuf) -> Self {
-        Parent(buf)
-    }
-
-    pub fn as_path_buf(&self) -> &PathBuf {
-        &self.0
-    }
 }
 
 fn main() -> std::io::Result<()> {
