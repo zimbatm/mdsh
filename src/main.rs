@@ -86,37 +86,31 @@ fn wrap_nl(s: String) -> String {
     }
 }
 
+static RE_FENCE_LINK_STR: &str = r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+static RE_MD_LINK_STR: &str = r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+static RE_FENCE_COMMAND_STR: &str = r"^`\$ (?P<command>[^`]+)`\s*$";
+static RE_MD_COMMAND_STR: &str = r"^`> (?P<command>[^`]+)`\s*$";
+static RE_MD_BLOCK_STR: &str = r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->";
+static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
+
 lazy_static! {
-    static ref RE_FENCE_LINK_STR: String = String::from(r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
-    static ref RE_MD_LINK_STR: String = String::from(r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
-    static ref RE_FENCE_COMMAND_STR: String = String::from(r"^`\$ (?P<command>[^`]+)`\s*$");
-    static ref RE_MD_COMMAND_STR: String = String::from(r"^`> (?P<command>[^`]+)`\s*$");
-    static ref RE_MD_BLOCK_STR: String = String::from(r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->");
-    static ref RE_FENCE_BLOCK_STR: String = String::from(r"^```.+?^```");
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+({}|{})",
-        RE_FENCE_COMMAND_STR.to_string(),
-        RE_FENCE_LINK_STR.to_string(),
-        RE_FENCE_BLOCK_STR.to_string(),
-        RE_MD_BLOCK_STR.to_string(),
+        RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+({}|{})",
-        RE_MD_COMMAND_STR.to_string(),
-        RE_MD_LINK_STR.to_string(),
-        RE_MD_BLOCK_STR.to_string(),
-        RE_FENCE_BLOCK_STR.to_string(),
+        RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
-    static ref RE_MATCH_FENCE_COMMAND_STR: String =
-        format!(r"(?sm){}", RE_FENCE_COMMAND_STR.to_string());
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm){}", RE_FENCE_COMMAND_STR);
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR.to_string());
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR);
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
-    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR.to_string());
+    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR);
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
-    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR.to_string());
+    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR);
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
