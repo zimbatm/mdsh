@@ -145,22 +145,26 @@ fn main() -> std::io::Result<()> {
         |buf| Parent::from_parent_path_buf(buf),
     );
     let original_contents = read_file(&input)?;
-    let contents = original_contents.clone();
+    let mut contents = original_contents.clone();
 
     eprintln!(
         "Using clean={:?} input={:?} output={:?}",
         clean, &input, output,
     );
 
-    let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
-        // println!("caps1: {:?}", caps);
-        caps[1].to_string()
-    });
+    /// Remove all outputs of blocks
+    fn clean_blocks(file: &mut String, block_regex: &Regex) {
+        *file = block_regex
+            .replace_all(file, |caps: &Captures| {
+                // the 1 group is our command,
+                // the 2nd is the block, which we ignore and thus erase
+                caps[1].to_string()
+            })
+            .into_owned()
+    }
 
-    let contents = RE_MATCH_MD_BLOCK.replace_all(&contents, |caps: &Captures| {
-        // println!("caps2: {:?}", caps);
-        caps[1].to_string()
-    });
+    clean_blocks(&mut contents, &RE_MATCH_FENCE_BLOCK);
+    clean_blocks(&mut contents, &RE_MATCH_MD_BLOCK);
 
     // Write the contents and return if --clean is passed
     if clean {
