@@ -209,31 +209,42 @@ fn main() -> std::io::Result<()> {
         "<!-- END mdsh -->",
     );
 
-    let contents = RE_MATCH_FENCE_LINK.replace_all(&contents, |caps: &Captures| {
-        let link = &caps["link"];
+    /// Run all link includes and fill their blocks
+    fn fill_includes(
+        file: &mut String,
+        link_regex: &Regex,
+        link_char: char,
+        start_delimiter: &str,
+        end_delimiter: &str,
+    ) {
+        *file = link_regex
+            .replace_all(file, |caps: &Captures| {
+                let link = &caps["link"];
 
-        eprintln!("[$ {}]", link);
+                eprintln!("[{} {}]", link_char, link);
 
-        let result = read_file(&FileArg::from_str_unsafe(link))
-            .unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
+                let result = read_file(&FileArg::from_str_unsafe(link))
+                    .unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
 
-        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
-    });
+                format!(
+                    "{}{}{}{}",
+                    trail_nl(&caps[0]),
+                    start_delimiter,
+                    wrap_nl(result),
+                    end_delimiter
+                )
+            })
+            .into_owned()
+    }
 
-    let contents = RE_MATCH_MD_LINK.replace_all(&contents, |caps: &Captures| {
-        let link = &caps["link"];
-
-        eprintln!("[> {}]", link);
-
-        let result = read_file(&FileArg::from_str_unsafe(link))
-            .unwrap_or_else(|_| String::from("failed to read file"));
-
-        format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
-            trail_nl(&caps[0]),
-            wrap_nl(result)
-        )
-    });
+    fill_includes(&mut contents, &RE_MATCH_FENCE_LINK, '$', "```", "```");
+    fill_includes(
+        &mut contents,
+        &RE_MATCH_MD_LINK,
+        '>',
+        "<!-- BEGIN mdsh -->",
+        "<!-- END mdsh -->",
+    );
 
     // Special path if the file is frozen
     if frozen {
