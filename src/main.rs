@@ -172,35 +172,42 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let contents = RE_MATCH_FENCE_COMMAND.replace_all(&contents, |caps: &Captures| {
-        let command = &caps["command"];
+    // Run all commands and fill their blocks
+    let fill_commands = |file: &mut String,
+                         command_regex: &Regex,
+                         command_char: char,
+                         start_delimiter: &str,
+                         end_delimiter: &str| {
+        *file = command_regex
+            .replace_all(file, |caps: &Captures| {
+                let command = &caps["command"];
 
-        eprintln!("$ {}", command);
+                eprintln!("{} {}", command_char, command);
 
-        let result = run_command(command, &work_dir);
+                let result = run_command(command, &work_dir);
 
-        // TODO: if there is an error, write to stdout
-        let stdout = String::from_utf8(result.stdout).unwrap();
+                // TODO: if there is an error, write to stdout
+                let stdout = String::from_utf8(result.stdout).unwrap();
 
-        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(stdout))
-    });
+                format!(
+                    "{}{}{}{}",
+                    trail_nl(&caps[0]),
+                    start_delimiter,
+                    wrap_nl(stdout),
+                    end_delimiter
+                )
+            })
+            .into_owned();
+    };
 
-    let contents = RE_MATCH_MD_COMMAND.replace_all(&contents, |caps: &Captures| {
-        let command = &caps["command"];
-
-        eprintln!("> {}", command);
-
-        let result = run_command(command, &work_dir);
-
-        // TODO: if there is an error, write to stdout
-        let stdout = String::from_utf8(result.stdout).unwrap();
-
-        format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
-            trail_nl(&caps[0]),
-            wrap_nl(stdout)
-        )
-    });
+    fill_commands(&mut contents, &RE_MATCH_FENCE_COMMAND, '$', "```", "```");
+    fill_commands(
+        &mut contents,
+        &RE_MATCH_MD_COMMAND,
+        '>',
+        "<!-- BEGIN mdsh -->",
+        "<!-- END mdsh -->",
+    );
 
     let contents = RE_MATCH_FENCE_LINK.replace_all(&contents, |caps: &Captures| {
         let link = &caps["link"];
