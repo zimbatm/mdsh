@@ -1,5 +1,5 @@
-extern crate mdsh;
 extern crate diff;
+extern crate mdsh;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
@@ -14,14 +14,21 @@ use std::process::{Command, Output, Stdio};
 use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
-    Command::new("bash")
-        .arg("-c")
+    let mut cli = Command::new("bash");
+    cli.arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
         .stderr(Stdio::inherit()) // send stderr to stderr
         .current_dir(work_dir.as_path_buf())
         .output()
-        .expect("failed to execute command")
+        .expect(
+            format!(
+                "fatal: failed to execute command `{:?}` in {}",
+                cli,
+                work_dir.as_path_buf().display()
+            )
+            .as_str(),
+        )
 }
 
 fn read_file(f: &FileArg) -> Result<String, std::io::Error> {
