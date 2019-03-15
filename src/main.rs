@@ -244,16 +244,19 @@ fn main() -> std::io::Result<()> {
                 diff::Result::Left(l) => {
                     line += 1;
                     eprintln!("{}- {}", line, l)
-                },
+                }
                 diff::Result::Both(_, _) => {
                     // nothing changed, just increase the line number
                     line += 1
-                },
-                diff::Result::Right(l) => eprintln!("{}+ {}", line, l)
+                }
+                diff::Result::Right(l) => eprintln!("{}+ {}", line, l),
             };
         }
 
-        return Err(std::io::Error::new(ErrorKind::Other, "--frozen: input is not the same"));
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            "--frozen: input is not the same",
+        ));
     }
 
     write_file(output, contents.to_string())?;
