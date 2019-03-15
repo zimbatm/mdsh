@@ -3,27 +3,34 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use structopt::StructOpt;
 
-/// Options
+/// Markdown shell pre-processor.
+/// Never let your READMEs and tutorials get out of sync again.
+///
+/// Exits non-zero if a sub-command failed.
 #[derive(Debug, StructOpt)]
-#[structopt(name = "mdsh", about = "markdown shell pre-processor")]
+#[structopt(name = "mdsh")]
 pub struct Opt {
-    /// Path to the markdown file
+    /// Path to the markdown file. `-` for stdin.
     #[structopt(short = "i", long = "input", default_value = "README.md")]
     pub input: FileArg,
 
-    /// Path to the output file, defaults to the input value
+    /// Path to the output file, `-` for stdout [defaults to updating the input file in-place].
     #[structopt(short = "o", long = "output")]
     pub output: Option<FileArg>,
 
-    /// Directory to execute the scripts under, defaults to the input folder
+    /// Directory to execute the scripts under [defaults to the input file’s directory].
     #[structopt(long = "work_dir", parse(from_os_str))]
     pub work_dir: Option<PathBuf>,
 
-    /// Fail if the output is not the same as before. Useful for CI.
+    /// Fail if the output is different from the input. Useful for CI.
+    ///
+    /// Using `--frozen`, you can guarantee that developers update
+    /// documentation when they make a change. Just add `mdsh --frozen`
+    /// as a check to your continuous integration setup.
     #[structopt(long = "frozen")]
     pub frozen: bool,
 
-    /// Only clean the file from blocks
+    /// Remove all generated blocks.
     #[structopt(long = "clean")]
     pub clean: bool,
 }
