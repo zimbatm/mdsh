@@ -1,54 +1,65 @@
 extern crate diff;
+extern crate mdsh;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
 extern crate structopt;
 
+use mdsh::cli::{FileArg, Opt, Parent};
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, ErrorKind, Write};
-use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use structopt::StructOpt;
 
-fn run_command(command: &str, work_dir: &Path) -> Output {
-    Command::new("bash")
-        .arg("-c")
+fn run_command(command: &str, work_dir: &Parent) -> Output {
+    let mut cli = Command::new("bash");
+    cli.arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
-        .stderr(Stdio::inherit()) // send stderr to stderr
-        .current_dir(work_dir)
+        .current_dir(work_dir.as_path_buf())
         .output()
-        .expect("failed to execute command")
+        .expect(
+            format!(
+                "fatal: failed to execute command `{:?}` in {}",
+                cli,
+                work_dir.as_path_buf().display()
+            )
+            .as_str(),
+        )
 }
 
-fn read_file<T: AsRef<str>>(p: T) -> Result<String, std::io::Error> {
-    let path = p.as_ref();
+fn read_file(f: &FileArg) -> Result<String, std::io::Error> {
     let mut buffer = String::new();
 
-    if path == "-" {
-        let stdin = io::stdin();
-        let mut handle = stdin.lock();
-        handle.read_to_string(&mut buffer)?;
-    } else {
-        let mut file = File::open(path)?;
-        file.read_to_string(&mut buffer)?;
+    match f {
+        FileArg::StdHandle => {
+            let stdin = io::stdin();
+            let mut handle = stdin.lock();
+            handle.read_to_string(&mut buffer)?;
+        }
+        FileArg::File(path_buf) => {
+            let mut file = File::open(path_buf)?;
+            file.read_to_string(&mut buffer)?;
+        }
     }
 
     Ok(buffer)
 }
 
-fn write_file<T: AsRef<str>>(path: T, contents: String) -> Result<(), std::io::Error> {
-    let p = path.as_ref();
-    if p == "-" {
-        let stdout = io::stdout();
-        let mut handle = stdout.lock();
-        write!(handle, "{}", contents)?;
-    } else {
-        let mut file = File::create(p)?;
-        write!(file, "{}", contents)?;
-        file.sync_all()?;
+fn write_file(f: &FileArg, contents: String) -> Result<(), std::io::Error> {
+    match f {
+        FileArg::StdHandle => {
+            let stdout = io::stdout();
+            let mut handle = stdout.lock();
+            write!(handle, "{}", contents)?;
+        }
+        FileArg::File(path_buf) => {
+            let mut file = File::create(path_buf)?;
+            write!(file, "{}", contents)?;
+            file.sync_all()?;
+        }
     }
 
     Ok(())
@@ -74,62 +85,53 @@ fn wrap_nl(s: String) -> String {
     }
 }
 
+/// Link text block include of form `[$ description](./filename)`
+static RE_FENCE_LINK_STR: &str = r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+/// Link markdown block include of form `[> description](./filename)`
+static RE_MD_LINK_STR: &str = r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+/// Command text block include of form `\`$ command\``
+static RE_FENCE_COMMAND_STR: &str = r"^`\$ (?P<command>[^`]+)`\s*$";
+/// Command markdown block include of form `\`> command\``
+static RE_MD_COMMAND_STR: &str = r"^`> (?P<command>[^`]+)`\s*$";
+/// Delimiter block for marking automatically inserted text
+static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
+/// Delimiter block for marking automatically inserted markdown
+static RE_MD_BLOCK_STR: &str = r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->";
+
 lazy_static! {
-    static ref RE_FENCE_LINK_STR: String = String::from(r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
-    static ref RE_MD_LINK_STR: String = String::from(r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$");
-    static ref RE_FENCE_COMMAND_STR: String = String::from(r"^`\$ (?P<command>[^`]+)`\s*$");
-    static ref RE_MD_COMMAND_STR: String = String::from(r"^`> (?P<command>[^`]+)`\s*$");
-    static ref RE_MD_BLOCK_STR: String = String::from(r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->");
-    static ref RE_FENCE_BLOCK_STR: String = String::from(r"^```.+?^```");
+    /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+({}|{})",
-        RE_FENCE_COMMAND_STR.to_string(),
-        RE_FENCE_LINK_STR.to_string(),
-        RE_FENCE_BLOCK_STR.to_string(),
-        RE_MD_BLOCK_STR.to_string(),
+        RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
-    static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
+    /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
         r"(?sm)({}|{})[\s\n]+({}|{})",
-        RE_MD_COMMAND_STR.to_string(),
-        RE_MD_LINK_STR.to_string(),
-        RE_MD_BLOCK_STR.to_string(),
-        RE_FENCE_BLOCK_STR.to_string(),
+        RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
+
+    /// Match `RE_FENCE_COMMAND_STR`
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm){}", RE_FENCE_COMMAND_STR);
+    /// Match `RE_MD_COMMAND_STR`
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR);
+    /// Match `RE_FENCE_LINK_STR`
+    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR);
+    /// Match `RE_MD_LINK_STR`
+    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR);
+
+
+    static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
-    static ref RE_MATCH_FENCE_COMMAND_STR: String =
-        format!(r"(?sm){}", RE_FENCE_COMMAND_STR.to_string());
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR.to_string());
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
-    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR.to_string());
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
-    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR.to_string());
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "mdsh", about = "markdown shell pre-processor")]
-struct Opt {
-    /// Path to the markdown file
-    #[structopt(short = "i", long = "input", default_value = "README.md")]
-    input: String,
-
-    /// Path to the output file, defaults to the input value
-    #[structopt(short = "o", long = "output")]
-    output: Option<String>,
-
-    /// Directory to execute the scripts under, defaults to the input folder
-    #[structopt(long = "work_dir", parse(from_os_str))]
-    work_dir: Option<PathBuf>,
-
-    /// Fail if the output is not the same as before. Useful for CI.
-    #[structopt(long = "frozen")]
-    frozen: bool,
-
-    /// Only clean the file from blocks
-    #[structopt(long = "clean")]
-    clean: bool,
+struct FailingCommand {
+    output: Output,
+    command: String,
+    command_char: char,
 }
 
 fn main() -> std::io::Result<()> {
@@ -138,98 +140,156 @@ fn main() -> std::io::Result<()> {
     let frozen = opt.frozen;
     let input = opt.input;
     let output = opt.output.unwrap_or_else(|| input.clone());
-    let work_dir = match opt.work_dir {
-        Some(path) => path,
-        None => {
-            let path = match Path::new(&input).parent() {
-                Some(path) => {
-                    if path == Path::new("") {
-                        Path::new(".")
-                    } else {
-                        path
-                    }
-                }
-                // FIXME: crash here
-                None => Path::new("."),
-            };
-            path.to_path_buf()
-        }
-    };
+    let work_dir: Parent = opt.work_dir.map_or_else(
+        || {
+            input
+                .clone()
+                .parent()
+                .expect("fatal: your input file has no parent directory.")
+        },
+        |buf| Parent::from_parent_path_buf(buf),
+    );
     let original_contents = read_file(&input)?;
-    let contents = original_contents.clone();
+    let mut contents = original_contents.clone();
 
-    eprintln!("Using clean={} input={} output={}", clean, &input, output,);
+    eprintln!(
+        "Using clean={:?} input={:?} output={:?}",
+        clean, &input, output,
+    );
 
-    let contents = RE_MATCH_FENCE_BLOCK.replace_all(&contents, |caps: &Captures| {
-        // println!("caps1: {:?}", caps);
-        caps[1].to_string()
-    });
+    /// Remove all outputs of blocks
+    fn clean_blocks(file: &mut String, block_regex: &Regex) {
+        *file = block_regex
+            .replace_all(file, |caps: &Captures| {
+                // the 1 group is our command,
+                // the 2nd is the block, which we ignore and thus erase
+                caps[1].to_string()
+            })
+            .into_owned()
+    }
 
-    let contents = RE_MATCH_MD_BLOCK.replace_all(&contents, |caps: &Captures| {
-        // println!("caps2: {:?}", caps);
-        caps[1].to_string()
-    });
+    clean_blocks(&mut contents, &RE_MATCH_FENCE_BLOCK);
+    clean_blocks(&mut contents, &RE_MATCH_MD_BLOCK);
 
     // Write the contents and return if --clean is passed
     if clean {
-        write_file(output, contents.to_string())?;
+        write_file(&output, contents.to_string())?;
         return Ok(());
     }
 
-    let contents = RE_MATCH_FENCE_COMMAND.replace_all(&contents, |caps: &Captures| {
-        let command = &caps["command"];
+    // Run all commands and fill their blocks.
+    // If some commands return a non-zero exit code,
+    // returns a `Vec<FailingCommand>` of all commands that failed.
+    let fill_commands = |file: &mut String,
+                         command_regex: &Regex,
+                         command_char: char,
+                         start_delimiter: &str,
+                         end_delimiter: &str|
+     -> Result<(), Vec<FailingCommand>> {
+        let mut failures = Vec::new();
 
-        eprintln!("$ {}", command);
+        *file = command_regex
+            .replace_all(file, |caps: &Captures| {
+                let command = &caps["command"];
 
-        let result = run_command(command, &work_dir);
+                eprintln!("{} {}", command_char, command);
 
-        // TODO: if there is an error, write to stdout
-        let stdout = String::from_utf8(result.stdout).unwrap();
+                let result = run_command(command, &work_dir);
 
-        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(stdout))
-    });
+                if result.status.success() {
+                    let stdout = String::from_utf8_lossy(&result.stdout);
+                    format!(
+                        "{}{}{}{}",
+                        trail_nl(&caps[0]),
+                        start_delimiter,
+                        wrap_nl(stdout.to_string()),
+                        end_delimiter
+                    )
+                } else {
+                    failures.push(FailingCommand {
+                        output: result,
+                        command: command.to_string(),
+                        command_char: command_char,
+                    });
+                    // re-insert what was there before
+                    caps[0].to_string()
+                }
+            })
+            .into_owned();
 
-    let contents = RE_MATCH_MD_COMMAND.replace_all(&contents, |caps: &Captures| {
-        let command = &caps["command"];
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures)
+        }
+    };
 
-        eprintln!("> {}", command);
+    fn print_failures(fs: Vec<FailingCommand>) {
+        eprintln!("\nERROR: some commands failed:\n");
+        for f in fs {
+            let stderr = match String::from_utf8_lossy(&f.output.stderr)
+                .into_owned()
+                .as_str()
+            {
+                "" => String::from(""),
+                s => String::from("\nIts stderr was:\n") + s.trim_end(),
+            };
+            eprintln!(
+                "`{} {}` failed with status {}.{}\n",
+                f.command_char, f.command, f.output.status, stderr
+            );
+        }
+    }
 
-        let result = run_command(command, &work_dir);
+    fill_commands(&mut contents, &RE_MATCH_FENCE_COMMAND, '$', "```", "```")
+        .and(fill_commands(
+            &mut contents,
+            &RE_MATCH_MD_COMMAND,
+            '>',
+            "<!-- BEGIN mdsh -->",
+            "<!-- END mdsh -->",
+        ))
+        .or_else(|failures| -> std::io::Result<()> {
+            print_failures(failures);
+            std::process::exit(1);
+        })?;
 
-        // TODO: if there is an error, write to stdout
-        let stdout = String::from_utf8(result.stdout).unwrap();
+    /// Run all link includes and fill their blocks
+    fn fill_includes(
+        file: &mut String,
+        link_regex: &Regex,
+        link_char: char,
+        start_delimiter: &str,
+        end_delimiter: &str,
+    ) {
+        *file = link_regex
+            .replace_all(file, |caps: &Captures| {
+                let link = &caps["link"];
 
-        format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
-            trail_nl(&caps[0]),
-            wrap_nl(stdout)
-        )
-    });
+                eprintln!("[{} {}]", link_char, link);
 
-    let contents = RE_MATCH_FENCE_LINK.replace_all(&contents, |caps: &Captures| {
-        let link = &caps["link"];
+                let result = read_file(&FileArg::from_str_unsafe(link))
+                    .unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
 
-        eprintln!("[$ {}]", link);
+                format!(
+                    "{}{}{}{}",
+                    trail_nl(&caps[0]),
+                    start_delimiter,
+                    wrap_nl(result.to_owned()),
+                    end_delimiter
+                )
+            })
+            .into_owned()
+    }
 
-        let result =
-            read_file(link).unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
-
-        format!("{}```{}```", trail_nl(&caps[0]), wrap_nl(result))
-    });
-
-    let contents = RE_MATCH_MD_LINK.replace_all(&contents, |caps: &Captures| {
-        let link = &caps["link"];
-
-        eprintln!("[> {}]", link);
-
-        let result = read_file(link).unwrap_or_else(|_| String::from("failed to read file"));
-
-        format!(
-            "{}<!-- BEGIN mdsh -->{}<!-- END mdsh -->",
-            trail_nl(&caps[0]),
-            wrap_nl(result)
-        )
-    });
+    fill_includes(&mut contents, &RE_MATCH_FENCE_LINK, '$', "```", "```");
+    fill_includes(
+        &mut contents,
+        &RE_MATCH_MD_LINK,
+        '>',
+        "<!-- BEGIN mdsh -->",
+        "<!-- END mdsh -->",
+    );
 
     // Special path if the file is frozen
     if frozen {
@@ -244,19 +304,22 @@ fn main() -> std::io::Result<()> {
                 diff::Result::Left(l) => {
                     line += 1;
                     eprintln!("{}- {}", line, l)
-                },
+                }
                 diff::Result::Both(_, _) => {
                     // nothing changed, just increase the line number
                     line += 1
-                },
-                diff::Result::Right(l) => eprintln!("{}+ {}", line, l)
+                }
+                diff::Result::Right(l) => eprintln!("{}+ {}", line, l),
             };
         }
 
-        return Err(std::io::Error::new(ErrorKind::Other, "--frozen: input is not the same"));
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            "--frozen: input is not the same",
+        ));
     }
 
-    write_file(output, contents.to_string())?;
+    write_file(&output, contents.to_string())?;
 
     Ok(())
 }

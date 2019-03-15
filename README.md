@@ -23,21 +23,39 @@ Both of these cases are supported by extending the existing syntax and running
 ```
 mdsh 0.1.3
 zimbatm <zimbatm@zimbatm.com>
-markdown shell pre-processor
+Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
+
+Exits non-zero if a sub-command failed.
 
 USAGE:
     mdsh [FLAGS] [OPTIONS]
 
 FLAGS:
-        --clean      Only clean the file from blocks
-        --frozen     Fail if the output is not the same as before. Useful for CI.
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+        --clean      
+            Remove all generated blocks.
+
+        --frozen     
+            Fail if the output is different from the input. Useful for CI.
+            
+            Using `--frozen`, you can guarantee that developers update documentation when they make a change. Just add
+            `mdsh --frozen` as a check to your continuous integration setup.
+    -h, --help       
+            Prints help information
+
+    -V, --version    
+            Prints version information
+
 
 OPTIONS:
-    -i, --input <input>          Path to the markdown file [default: README.md]
-    -o, --output <output>        Path to the output file, defaults to the input value
-        --work_dir <work_dir>    Directory to execute the scripts under, defaults to the input folder
+    -i, --input <input>          
+            Path to the markdown file. `-` for stdin. [default: README.md]
+
+    -o, --output <output>        
+            Path to the output file, `-` for stdout [defaults to updating the input file in-place].
+
+        --work_dir <work_dir>    
+            Directory to execute the scripts under [defaults to the input file’s directory].
+
 ```
 ## Syntax Extensions
 
@@ -63,24 +81,19 @@ either a fenced code block (`$`) or markdown code (`>`).
 Examples:
 
 ~~~
-`$ date`
+`$ seq 4 | sort -r`
 ```
-Wed Mar 13 13:55:49 CET 2019
+4
+3
+2
+1
 ```
 ~~~
 
 ~~~
-`> nix-info --markdown`
+`> echo 'I *can* include markdown. <code>Hehe</code>.'`
 <!-- BEGIN mdsh -->
- - system: `"x86_64-linux"`
- - host os: `Linux 4.20.13, NixOS, 19.09.git.163073d5f0d (Loris)`
- - multi-user?: `yes`
- - sandbox: `yes`
- - version: `nix-env (Nix) 2.2`
- - channels(root): `""`
- - channels(zimbatm): `""`
- - nixpkgs: `/home/zimbatm/go/src/github.com/nixos/nixpkgs-zimbatm`
-
+I *can* include markdown. <code>Hehe</code>.
 <!-- END mdsh -->
 ~~~
 
