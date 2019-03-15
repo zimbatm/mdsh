@@ -18,7 +18,6 @@ fn run_command(command: &str, work_dir: &Parent) -> Output {
     cli.arg("-c")
         .arg(command)
         .stdin(Stdio::null()) // don't read from stdin
-        .stderr(Stdio::inherit()) // send stderr to stderr
         .current_dir(work_dir.as_path_buf())
         .output()
         .expect(
@@ -129,6 +128,12 @@ lazy_static! {
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 }
 
+struct FailingCommand {
+    output: Output,
+    command: String,
+    command_char: char,
+}
+
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
@@ -172,12 +177,17 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    // Run all commands and fill their blocks
+    // Run all commands and fill their blocks.
+    // If some commands return a non-zero exit code,
+    // returns a `Vec<FailingCommand>` of all commands that failed.
     let fill_commands = |file: &mut String,
                          command_regex: &Regex,
                          command_char: char,
                          start_delimiter: &str,
-                         end_delimiter: &str| {
+                         end_delimiter: &str|
+     -> Result<(), Vec<FailingCommand>> {
+        let mut failures = Vec::new();
+
         *file = command_regex
             .replace_all(file, |caps: &Captures| {
                 let command = &caps["command"];
@@ -186,28 +196,63 @@ fn main() -> std::io::Result<()> {
 
                 let result = run_command(command, &work_dir);
 
-                // TODO: if there is an error, write to stdout
-                let stdout = String::from_utf8(result.stdout).unwrap();
-
-                format!(
-                    "{}{}{}{}",
-                    trail_nl(&caps[0]),
-                    start_delimiter,
-                    wrap_nl(stdout),
-                    end_delimiter
-                )
+                if result.status.success() {
+                    let stdout = String::from_utf8_lossy(&result.stdout);
+                    format!(
+                        "{}{}{}{}",
+                        trail_nl(&caps[0]),
+                        start_delimiter,
+                        wrap_nl(stdout.to_string()),
+                        end_delimiter
+                    )
+                } else {
+                    failures.push(FailingCommand {
+                        output: result,
+                        command: command.to_string(),
+                        command_char: command_char,
+                    });
+                    // re-insert what was there before
+                    caps[0].to_string()
+                }
             })
             .into_owned();
+
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures)
+        }
     };
 
-    fill_commands(&mut contents, &RE_MATCH_FENCE_COMMAND, '$', "```", "```");
-    fill_commands(
-        &mut contents,
-        &RE_MATCH_MD_COMMAND,
-        '>',
-        "<!-- BEGIN mdsh -->",
-        "<!-- END mdsh -->",
-    );
+    fn print_failures(fs: Vec<FailingCommand>) {
+        eprintln!("\nERROR: some commands failed:\n");
+        for f in fs {
+            let stderr = match String::from_utf8_lossy(&f.output.stderr)
+                .into_owned()
+                .as_str()
+            {
+                "" => String::from(""),
+                s => String::from("\nIts stderr was:\n") + s.trim_end(),
+            };
+            eprintln!(
+                "`{} {}` failed with status {}.{}\n",
+                f.command_char, f.command, f.output.status, stderr
+            );
+        }
+    }
+
+    fill_commands(&mut contents, &RE_MATCH_FENCE_COMMAND, '$', "```", "```")
+        .and(fill_commands(
+            &mut contents,
+            &RE_MATCH_MD_COMMAND,
+            '>',
+            "<!-- BEGIN mdsh -->",
+            "<!-- END mdsh -->",
+        ))
+        .or_else(|failures| -> std::io::Result<()> {
+            print_failures(failures);
+            std::process::exit(1);
+        })?;
 
     /// Run all link includes and fill their blocks
     fn fill_includes(
@@ -230,7 +275,7 @@ fn main() -> std::io::Result<()> {
                     "{}{}{}{}",
                     trail_nl(&caps[0]),
                     start_delimiter,
-                    wrap_nl(result),
+                    wrap_nl(result.to_owned()),
                     end_delimiter
                 )
             })
