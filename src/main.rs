@@ -145,15 +145,12 @@ enum FileArg {
 }
 
 impl FileArg {
-    /// Return the parent, if it is a `StdHandle` use the current directory
-    pub fn parent(&self) -> Parent {
+    /// Return the parent, if it is a `StdHandle` use the current directory.
+    /// Returns `None` if there is no parent (that is we are `/`).
+    pub fn parent(&self) -> Option<Parent> {
         match self {
-            FileArg::StdHandle => Parent::current_dir(),
-            FileArg::File(buf) =>
-            // we are sure that this is never `/`, we checked in parse
-            {
-                Parent::of(buf)
-            }
+            FileArg::StdHandle => Some(Parent::current_dir()),
+            FileArg::File(buf) => Parent::of(buf),
         }
     }
 
@@ -179,13 +176,13 @@ struct Parent(PathBuf);
 impl Parent {
     /// Create from a `Path`, falling back to the
     /// `current_dir()` if necessary.
-    /// Panics if the input is the root path (`/`).
-    pub fn of(p: &Path) -> Self {
-        let prnt = p.parent().unwrap();
+    /// Returns `None` if there is no parent (that is we are `/`).
+    pub fn of(p: &Path) -> Option<Self> {
+        let prnt = p.parent()?;
         if prnt.as_os_str().is_empty() {
-            Self::current_dir()
+            Some(Self::current_dir())
         } else {
-            Parent(prnt.to_path_buf())
+            Some(Parent(prnt.to_path_buf()))
         }
     }
 
@@ -216,7 +213,12 @@ fn main() -> std::io::Result<()> {
     let input = opt.input;
     let output = opt.output.unwrap_or_else(|| input.clone());
     let work_dir: Parent = opt.work_dir.map_or_else(
-        || input.clone().parent(),
+        || {
+            input
+                .clone()
+                .parent()
+                .expect("fatal: your input file has no parent directory.")
+        },
         |buf| Parent::from_parent_path_buf(buf),
     );
     let original_contents = read_file(&input)?;
