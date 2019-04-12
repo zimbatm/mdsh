@@ -31,7 +31,9 @@ fn run_command(command: &str, work_dir: &Parent) -> Output {
 }
 
 fn die<A>(msg: String) -> A {
-    std::io::stderr().write_all(format!("fatal: {}\n", msg).as_bytes()).unwrap();
+    std::io::stderr()
+        .write_all(format!("fatal: {}\n", msg).as_bytes())
+        .unwrap();
     std::process::exit(1)
 }
 
@@ -42,13 +44,20 @@ fn read_file(f: &FileArg) -> String {
         FileArg::StdHandle => {
             let stdin = io::stdin();
             let mut handle = stdin.lock();
-            handle.read_to_string(&mut buffer)
+            handle
+                .read_to_string(&mut buffer)
                 .unwrap_or_else(|err| die(format!("failed to read from stdin: {}", err)));
         }
         FileArg::File(path_buf) => {
             File::open(path_buf)
                 .and_then(|mut file| file.read_to_string(&mut buffer))
-                .unwrap_or_else(|err| die(format!("failed to read from {}: {}", path_buf.display(), err)));
+                .unwrap_or_else(|err| {
+                    die(format!(
+                        "failed to read from {}: {}",
+                        path_buf.display(),
+                        err
+                    ))
+                });
         }
     }
 
@@ -69,7 +78,13 @@ fn write_file(f: &FileArg, contents: String) {
                     write!(file, "{}", contents)?;
                     file.sync_all()
                 })
-                .unwrap_or_else(|err| die(format!("failed to write to {}: {}", path_buf.display(), err)));
+                .unwrap_or_else(|err| {
+                    die(format!(
+                        "failed to write to {}: {}",
+                        path_buf.display(),
+                        err
+                    ))
+                });
         }
     }
 }
