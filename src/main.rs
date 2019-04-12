@@ -219,16 +219,20 @@ fn main() -> std::io::Result<()> {
                 eprintln!("{} {}", command_char, command);
 
                 let result = run_command(command, &work_dir);
-
                 if result.status.success() {
                     let stdout = String::from_utf8_lossy(&result.stdout);
-                    format!(
-                        "{}{}{}{}",
-                        trail_nl(&caps[0]),
-                        start_delimiter,
-                        wrap_nl(stdout.to_string()),
-                        end_delimiter
-                    )
+                    // we can leave the output block if stdout was empty
+                    if stdout.trim().is_empty() {
+                        format!("{}", trail_nl(&caps[0]))
+                    } else {
+                        format!(
+                            "{}{}{}{}",
+                            trail_nl(&caps[0]),
+                            start_delimiter,
+                            wrap_nl(stdout.to_string()),
+                            end_delimiter
+                        )
+                    }
                 } else {
                     failures.push(FailingCommand {
                         output: result,
