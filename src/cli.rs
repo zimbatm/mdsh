@@ -11,7 +11,7 @@ use structopt::StructOpt;
 #[structopt(name = "mdsh")]
 pub struct Opt {
     /// Path to the markdown file. `-` for stdin.
-    #[structopt(short = "i", long = "input", default_value = "README.md")]
+    #[structopt(short = "i", long = "input", default_value = "./README.md")]
     pub input: FileArg,
 
     /// Path to the output file, `-` for stdout [defaults to updating the input file in-place].

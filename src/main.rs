@@ -30,39 +30,48 @@ fn run_command(command: &str, work_dir: &Parent) -> Output {
         )
 }
 
-fn read_file(f: &FileArg) -> Result<String, std::io::Error> {
+fn die<A>(msg: String) -> A {
+    std::io::stderr().write_all(format!("fatal: {}\n", msg).as_bytes()).unwrap();
+    std::process::exit(1)
+}
+
+fn read_file(f: &FileArg) -> String {
     let mut buffer = String::new();
 
     match f {
         FileArg::StdHandle => {
             let stdin = io::stdin();
             let mut handle = stdin.lock();
-            handle.read_to_string(&mut buffer)?;
+            handle.read_to_string(&mut buffer)
+                .unwrap_or_else(|err| die(format!("failed to read from stdin: {}", err)));
         }
         FileArg::File(path_buf) => {
-            let mut file = File::open(path_buf)?;
-            file.read_to_string(&mut buffer)?;
+            File::open(path_buf)
+                .and_then(|mut file| file.read_to_string(&mut buffer))
+                .unwrap_or_else(|err| die(format!("failed to read from {}: {}", path_buf.display(), err)));
         }
     }
 
-    Ok(buffer)
+    buffer
 }
 
-fn write_file(f: &FileArg, contents: String) -> Result<(), std::io::Error> {
+fn write_file(f: &FileArg, contents: String) {
     match f {
         FileArg::StdHandle => {
             let stdout = io::stdout();
             let mut handle = stdout.lock();
-            write!(handle, "{}", contents)?;
+            write!(handle, "{}", contents)
+                .unwrap_or_else(|err| die(format!("failed to write to stdout: {}", err)));
         }
         FileArg::File(path_buf) => {
-            let mut file = File::create(path_buf)?;
-            write!(file, "{}", contents)?;
-            file.sync_all()?;
+            File::create(path_buf)
+                .and_then(|mut file| {
+                    write!(file, "{}", contents)?;
+                    file.sync_all()
+                })
+                .unwrap_or_else(|err| die(format!("failed to write to {}: {}", path_buf.display(), err)));
         }
     }
-
-    Ok(())
 }
 
 fn trail_nl<T: AsRef<str>>(s: T) -> String {
@@ -149,7 +158,7 @@ fn main() -> std::io::Result<()> {
         },
         |buf| Parent::from_parent_path_buf(buf),
     );
-    let original_contents = read_file(&input)?;
+    let original_contents = read_file(&input);
     let mut contents = original_contents.clone();
 
     eprintln!(
@@ -173,7 +182,7 @@ fn main() -> std::io::Result<()> {
 
     // Write the contents and return if --clean is passed
     if clean {
-        write_file(&output, contents.to_string())?;
+        write_file(&output, contents.to_string());
         return Ok(());
     }
 
@@ -268,8 +277,7 @@ fn main() -> std::io::Result<()> {
 
                 eprintln!("[{} {}]", link_char, link);
 
-                let result = read_file(&FileArg::from_str_unsafe(link))
-                    .unwrap_or_else(|_| String::from("[mdsh error]: failed to read file"));
+                let result = read_file(&FileArg::from_str_unsafe(link));
 
                 format!(
                     "{}{}{}{}",
@@ -319,7 +327,7 @@ fn main() -> std::io::Result<()> {
         ));
     }
 
-    write_file(&output, contents.to_string())?;
+    write_file(&output, contents.to_string());
 
     Ok(())
 }
