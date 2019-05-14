@@ -109,6 +109,11 @@ fn wrap_nl(s: String) -> String {
     }
 }
 
+// remove all ansi escape characters
+fn filter_ansi(s: String) -> String {
+    RE_ANSI_FILTER.replace_all(&s, "").to_string()
+}
+
 /// Link text block include of form `[$ description](./filename)`
 static RE_FENCE_LINK_STR: &str = r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
 /// Link markdown block include of form `[> description](./filename)`
@@ -150,6 +155,10 @@ lazy_static! {
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
+
+    /// Ansi characters filter
+    /// https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream
+    static ref RE_ANSI_FILTER: Regex = Regex::new(r"\x1b\[[0-9;]*[mGKH]").unwrap();
 }
 
 struct FailingCommand {
@@ -221,6 +230,8 @@ fn main() -> std::io::Result<()> {
                 let result = run_command(command, &work_dir);
                 if result.status.success() {
                     let stdout = String::from_utf8_lossy(&result.stdout);
+                    // remove ansi escape sequences
+                    let stdout = filter_ansi(stdout.to_string());
                     // we can leave the output block if stdout was empty
                     if stdout.trim().is_empty() {
                         format!("{}", trail_nl(&caps[0]))
