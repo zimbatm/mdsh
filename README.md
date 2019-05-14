@@ -127,6 +127,23 @@ pp ({ foo: 3 })
 <!-- END mdsh -->
 ~~~
 
+### Extra features
+
+ANSI escape sequences are filtered from command outputs:
+
+`$ ls --color | sort | grep -v target`
+```
+src
+nix
+Cargo.lock
+Cargo.toml
+CHANGELOG.md
+code.rb
+example.md
+LICENSE
+profile.nix
+README.md
+```
 ## Installation
 
 The best way to install `mdsh` is with the rust tool cargo.
