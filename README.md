@@ -2,20 +2,21 @@
 
 [![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
-the mdsh project describes a Markdown language extension that can be used to
-automate some common tasks. The goal is to keep the syntax compatible while
-allowing a pre-processor (`mdsh`) to be run against the file.
+The mdsh project describes a Markdown language extension that can be used to
+automate some common tasks in README.md files. Quite often I find myself
+needing to embed a snippet of code or markdown from a different file. Or I
+want to show the output of a command. In both cases this can be done manually,
+but what all you had to do was run `mdsh` and have the file updated
+automatically?
 
-Quite often I find myself needing to embed a snippet of code or markdown from
-a different file. But GitHub doesn't allow loading other files, even when
-selecting a format that supports it (like AsciiDoc).
+So the goal of this tool is first to extend the syntax of Markdown in a
+natural way. Something that you might type. And if the `mdsh` tool is run, the
+related blocks get updated in place. Most other tools would produce a new file
+but we really want a sort of idempotent operation here.
 
-Another quite common use-case is to embed the output of a command as a fenced
-code block or markdown content. For example the project is a CLI and the
-`--help` output could be displayed in the README.md.
-
-Both of these cases are supported by extending the existing syntax and running
-`mdsh` against the file.
+In the end this gives a tool that is a bit akin to literate programming or
+jupyer notebooks but for shell commands. It adds a bit of verbosity to the
+file and in exchange it allows to automate the refresh of those outputs.
 
 ## Usage
 
