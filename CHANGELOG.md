@@ -1,4 +1,12 @@
 
+0.1.4 / 2019-08-01
+==================
+
+  * FEAT: implement --frozen option (#13)
+  * FEAT: filter out ANSI escape characters (#22)
+  * FEAT: better error messages on read/write errors (#18)
+  * DOC: improved documentation overall
+
 0.1.3 / 2019-02-18
 ==================
 
