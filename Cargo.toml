@@ -17,7 +17,7 @@ license = "MIT"
 repository = "zimbatm/mdsh"
 
 [dependencies]
-regex = "1.1.0"
+difference = "2.0.0"
 lazy_static = "1.2.0"
+regex = "1.1.0"
 structopt = "0.2.14"
-diff = "0.1.11"

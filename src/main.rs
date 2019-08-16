@@ -1,10 +1,7 @@
-extern crate diff;
-extern crate mdsh;
 #[macro_use]
 extern crate lazy_static;
-extern crate regex;
-extern crate structopt;
 
+use difference::Changeset;
 use mdsh::cli::{FileArg, Opt, Parent};
 use regex::{Captures, Regex};
 use std::fs::File;
@@ -335,25 +332,12 @@ fn main() -> std::io::Result<()> {
             return Ok(());
         }
 
-        eprintln!("Found differences in output:");
-        let mut line = 0;
-        for diff in diff::lines(&original_contents, &contents) {
-            match diff {
-                diff::Result::Left(l) => {
-                    line += 1;
-                    eprintln!("{}- {}", line, l)
-                }
-                diff::Result::Both(_, _) => {
-                    // nothing changed, just increase the line number
-                    line += 1
-                }
-                diff::Result::Right(l) => eprintln!("{}+ {}", line, l),
-            };
-        }
+        let changeset = Changeset::new(&original_contents, &contents, "\n");
+        eprintln!("{}", changeset);
 
         return Err(std::io::Error::new(
             ErrorKind::Other,
-            "--frozen: input is not the same",
+            "--frozen: output is not the same",
         ));
     }
 
