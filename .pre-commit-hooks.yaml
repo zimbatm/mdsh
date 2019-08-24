@@ -1,0 +1,7 @@
+-  id: mdsh
+   name: mdsh
+   description: README.md shell pre-processor.
+   entry: mdsh --input
+   language: rust
+   files: README.md
+   minimum_pre_commit_version: 1.18.1

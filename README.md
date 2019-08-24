@@ -142,8 +142,8 @@ CHANGELOG.md
 code.rb
 example.md
 LICENSE
-profile.nix
 README.md
+shell.nix
 ```
 ## Installation
 
@@ -158,6 +158,24 @@ If you are lucky enough to be a nix user:
 ```bash
 nix-env -f https://github.com/NixOS/nixpkgs/archive/master.tar.gz -iA mdsh
 ```
+
+### Pre-commit hook
+
+This project can also be installed as a [pre-commit](https://pre-commit.com/)
+hook.
+
+Add to your project's `.pre-commit-config.yaml`:
+
+```yaml
+-   repo: https://github.com/zimbatm/mdsh.git
+    rev: master
+    hooks:
+    -   id: mdsh
+```
+
+Make sure to have rust available in your environment.
+
+Then run `pre-commit install-hooks`
 
 ## Known issues
 

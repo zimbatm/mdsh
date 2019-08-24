@@ -1,0 +1,17 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/doublify/pre-commit-rust
+    rev: ebc9050d3d3434417feff68e3d847ad4123f5ba8
+    hooks:
+    -   id: fmt
+    -   id: cargo-check
+
+-   repo: local
+    hooks:
+    -  id: mdsh
+       name: mdsh
+       description: README.md shell pre-processor.
+       entry: mdsh --input
+       language: rust
+       files: README.md
