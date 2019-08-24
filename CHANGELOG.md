@@ -1,4 +1,10 @@
 
+0.1.5 / 2019-08-24
+==================
+
+  * add pre-commit hooks
+  * improve diff output for --frozen
+
 0.1.4 / 2019-08-01
 ==================
 
