@@ -134,8 +134,9 @@ ANSI escape sequences are filtered from command outputs:
 
 `$ ls --color | sort | grep -v target`
 ```
-src
 nix
+src
+ci.sh
 Cargo.lock
 Cargo.toml
 CHANGELOG.md
