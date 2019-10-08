@@ -112,13 +112,13 @@ fn filter_ansi(s: String) -> String {
 }
 
 /// Link text block include of form `[$ description](./filename)`
-static RE_FENCE_LINK_STR: &str = r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+static RE_FENCE_LINK_STR: &str = r"^\[\$ (?P<link>[^\]]+)\]\([^\)]+\) *$";
 /// Link markdown block include of form `[> description](./filename)`
-static RE_MD_LINK_STR: &str = r"^\[> (?P<link>[^\]]+)\]\([^\)]+\)\s*$";
+static RE_MD_LINK_STR: &str = r"^\[> (?P<link>[^\]]+)\]\([^\)]+\) *$";
 /// Command text block include of form `\`$ command\``
-static RE_FENCE_COMMAND_STR: &str = r"^`\$ (?P<command>[^`]+)`\s*$";
+static RE_FENCE_COMMAND_STR: &str = r"^`\$ (?P<command>[^`]+)` *$";
 /// Command markdown block include of form `\`> command\``
-static RE_MD_COMMAND_STR: &str = r"^`> (?P<command>[^`]+)`\s*$";
+static RE_MD_COMMAND_STR: &str = r"^`> (?P<command>[^`]+)` *$";
 /// Delimiter block for marking automatically inserted text
 static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
 /// Delimiter block for marking automatically inserted markdown
@@ -127,12 +127,12 @@ static RE_MD_BLOCK_STR: &str = r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->";
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})[\s\n]+({}|{})",
+        r"(?sm)({}|{})\n({}|{})",
         RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})[\s\n]+({}|{})",
+        r"(?sm)({}|{})\n({}|{})",
         RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 

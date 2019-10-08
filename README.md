@@ -58,6 +58,7 @@ OPTIONS:
             Directory to execute the scripts under [defaults to the input file’s directory].
 
 ```
+
 ## Syntax Extensions
 
 ### Inline Shell Code
@@ -146,6 +147,7 @@ LICENSE
 README.md
 shell.nix
 ```
+
 ## Installation
 
 The best way to install `mdsh` is with the rust tool cargo.
