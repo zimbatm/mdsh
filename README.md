@@ -129,7 +129,7 @@ pp ({ foo: 3 })
 <!-- END mdsh -->
 ~~~
 
-### Extra features
+### ANSI escapes
 
 ANSI escape sequences are filtered from command outputs:
 
@@ -147,6 +147,18 @@ LICENSE
 README.md
 shell.nix
 ```
+
+### Commented-out commands
+
+Sometimes it's useful not to render the command that is being shown. All the
+commands support being hidden inside of a HTML comment like so:
+
+~~~
+<!-- `$ echo example` -->
+```
+example
+```
+~~~
 
 ## Installation
 
