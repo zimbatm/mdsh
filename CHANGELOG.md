@@ -1,8 +1,14 @@
 
+0.2.0 / 2019-10-08
+==================
+
+  * FEAT: add support for commented-out commands
+  * FIX: fix line collapsing
+
 0.1.5 / 2019-08-24
 ==================
 
-  * add pre-commit hooks
+  * FEAT: add pre-commit hooks
   * improve diff output for --frozen
 
 0.1.4 / 2019-08-01
