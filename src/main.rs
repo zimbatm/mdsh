@@ -112,9 +112,9 @@ fn filter_ansi(s: String) -> String {
 }
 
 /// Link text block include of form `[$ description](./filename)`
-static RE_FENCE_LINK_STR: &str = r"^(?:<!-- ?)?\[\$ (?P<link>[^\]]+)\]\([^\)]+\) *(?:--> *)?$";
+static RE_FENCE_LINK_STR: &str = r"^(?:<!-- ?)?\[\$ [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
 /// Link markdown block include of form `[> description](./filename)`
-static RE_MD_LINK_STR: &str = r"^(?:<!-- ?)?\[> (?P<link>[^\]]+)\]\([^\)]+\) *(?:--> *)?$";
+static RE_MD_LINK_STR: &str = r"^(?:<!-- ?)?\[> [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
 /// Command text block include of form `\`$ command\``
 static RE_FENCE_COMMAND_STR: &str = r"^(?:<!-- ?)?`\$ (?P<command>[^`]+)` *(?:--> *)?$";
 /// Command markdown block include of form `\`> command\``

@@ -114,7 +114,7 @@ Link Includes work similarily to code blocks but with the link syntax.
 Examples:
 
 ~~~
-[$ code.rb](code.rb)
+[$ code.rb](samples/code.rb)
 ```
 require "pp"
 
@@ -123,7 +123,7 @@ pp ({ foo: 3 })
 ~~~
 
 ~~~
-[> example.md](example.md)
+[> example.md](samples/example.md)
 <!-- BEGIN mdsh -->
 *this is part of the example.md file*
 <!-- END mdsh -->
@@ -136,13 +136,12 @@ ANSI escape sequences are filtered from command outputs:
 `$ ls --color | sort | grep -v target`
 ```
 nix
+samples
 src
 ci.sh
 Cargo.lock
 Cargo.toml
 CHANGELOG.md
-code.rb
-example.md
 LICENSE
 README.md
 shell.nix
