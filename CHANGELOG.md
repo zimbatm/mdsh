@@ -1,4 +1,10 @@
 
+0.3.0 / 2019-10-19
+==================
+
+  * CHANGE: use the RHS of the link as a source.
+    Eg: `$ [before.rb](after.rb)` now loads `after.rb` instead of `before.rb`
+
 0.2.0 / 2019-10-08
 ==================
 
