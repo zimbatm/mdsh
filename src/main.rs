@@ -112,38 +112,44 @@ fn filter_ansi(s: String) -> String {
 }
 
 /// Link text block include of form `[$ description](./filename)`
-static RE_FENCE_LINK_STR: &str = r"^(?:<!-- ?)?\[\$ [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
+static RE_FENCE_LINK_STR: &str = r"\[\$ [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Link markdown block include of form `[> description](./filename)`
-static RE_MD_LINK_STR: &str = r"^(?:<!-- ?)?\[> [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
+static RE_MD_LINK_STR: &str = r"\[> [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Command text block include of form `\`$ command\``
-static RE_FENCE_COMMAND_STR: &str = r"^(?:<!-- ?)?`\$ (?P<command>[^`]+)` *(?:--> *)?$";
+static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command>[^`]+)`";
 /// Command markdown block include of form `\`> command\``
-static RE_MD_COMMAND_STR: &str = r"^(?:<!-- ?)?`> (?P<command>[^`]+)` *(?:--> *)?$";
+static RE_MD_COMMAND_STR: &str = r"`> (?P<command>[^`]+)`";
 /// Delimiter block for marking automatically inserted text
 static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
 /// Delimiter block for marking automatically inserted markdown
 static RE_MD_BLOCK_STR: &str = r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->";
 
+/// HTML comment wrappers
+static RE_COMMENT_BEGIN_STR: &str = r"(?:<!-- +)?";
+static RE_COMMENT_END_STR: &str = r"(?: +-->)?";
+
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})\n({}|{})",
-        RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
+        r"(?sm)(^{}(?:{}|{}){} *$)\n({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_COMMENT_END_STR,
+        RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})\n({}|{})",
-        RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
+        r"(?sm)(^{}(?:{}|{}){} *$)\n({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR,
+        RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 
     /// Match `RE_FENCE_COMMAND_STR`
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm){}", RE_FENCE_COMMAND_STR);
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_COMMENT_END_STR);
     /// Match `RE_MD_COMMAND_STR`
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR);
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_COMMENT_END_STR);
     /// Match `RE_FENCE_LINK_STR`
-    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR);
+    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_LINK_STR, RE_COMMENT_END_STR);
     /// Match `RE_MD_LINK_STR`
-    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR);
+    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR);
 
 
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
