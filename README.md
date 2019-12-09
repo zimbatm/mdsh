@@ -114,8 +114,8 @@ Link Includes work similarily to code blocks but with the link syntax.
 Examples:
 
 ~~~
-[$ code.rb](samples/code.rb)
-```
+[$ code.rb](samples/code.rb) as ruby
+```ruby
 require "pp"
 
 pp ({ foo: 3 })
@@ -156,6 +156,18 @@ commands support being hidden inside of a HTML comment like so:
 <!-- `$ echo example` -->
 ```
 example
+```
+~~~
+
+### Fenced code type
+
+If you want GitHub to highlight the outputted code fences, it's possible to
+postfix the line with `as <type>`. For example:
+
+~~~
+`$ echo '{ key: "value" }'` as json
+```json
+{ key: "value" }
 ```
 ~~~
 
