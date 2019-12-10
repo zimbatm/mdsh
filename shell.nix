@@ -7,6 +7,7 @@ pkgs.mkShell {
     pkgs.gitAndTools.pre-commit
     pkgs.rustfmt
     pkgs.cargo
+    pkgs.cargo.passthru.rustc
   ];
 
   shellHook = ''

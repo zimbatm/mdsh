@@ -112,38 +112,47 @@ fn filter_ansi(s: String) -> String {
 }
 
 /// Link text block include of form `[$ description](./filename)`
-static RE_FENCE_LINK_STR: &str = r"^(?:<!-- ?)?\[\$ [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
+static RE_FENCE_LINK_STR: &str = r"\[\$ [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Link markdown block include of form `[> description](./filename)`
-static RE_MD_LINK_STR: &str = r"^(?:<!-- ?)?\[> [^\]]+\]\((?P<link>[^\)]+)\) *(?:--> *)?$";
+static RE_MD_LINK_STR: &str = r"\[> [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Command text block include of form `\`$ command\``
-static RE_FENCE_COMMAND_STR: &str = r"^(?:<!-- ?)?`\$ (?P<command>[^`]+)` *(?:--> *)?$";
+static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command>[^`]+)`";
 /// Command markdown block include of form `\`> command\``
-static RE_MD_COMMAND_STR: &str = r"^(?:<!-- ?)?`> (?P<command>[^`]+)` *(?:--> *)?$";
+static RE_MD_COMMAND_STR: &str = r"`> (?P<command>[^`]+)`";
 /// Delimiter block for marking automatically inserted text
 static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
 /// Delimiter block for marking automatically inserted markdown
 static RE_MD_BLOCK_STR: &str = r"^<!-- BEGIN mdsh -->.+?^<!-- END mdsh -->";
 
+/// HTML comment wrappers
+static RE_COMMENT_BEGIN_STR: &str = r"(?:<!-- +)?";
+static RE_COMMENT_END_STR: &str = r"(?: +-->)?";
+
+/// Fenced code type specifier
+static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))";
+
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})\n({}|{})",
-        RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
+        r"(?sm)(^{}(?:{}|{}){}{} *$)\n({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR,
+        RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)({}|{})\n({}|{})",
-        RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
+        r"(?sm)(^{}(?:{}|{}){} *$)\n({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR,
+        RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 
     /// Match `RE_FENCE_COMMAND_STR`
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm){}", RE_FENCE_COMMAND_STR);
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^{}{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_MD_COMMAND_STR`
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm){}", RE_MD_COMMAND_STR);
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_COMMENT_END_STR);
     /// Match `RE_FENCE_LINK_STR`
-    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm){}", RE_FENCE_LINK_STR);
+    static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm)^{}{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_MD_LINK_STR`
-    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm){}", RE_MD_LINK_STR);
+    static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR);
 
 
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
@@ -207,6 +216,17 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
+    // Return either the captures fence type with a whitespace in front,
+    // or an empty string.
+    // That way if the fence type doesn't apply, nothing is being added.
+    fn get_fence_type(caps: &Captures) -> String {
+        if let Some(name) = &caps.name("fence_type") {
+            format!("{}", name.as_str())
+        } else {
+            format!("")
+        }
+    };
+
     // Run all commands and fill their blocks.
     // If some commands return a non-zero exit code,
     // returns a `Vec<FailingCommand>` of all commands that failed.
@@ -221,6 +241,7 @@ fn main() -> std::io::Result<()> {
         *file = command_regex
             .replace_all(file, |caps: &Captures| {
                 let command = &caps["command"];
+                let fence_type = get_fence_type(caps);
 
                 eprintln!("{} {}", command_char, command);
 
@@ -234,9 +255,10 @@ fn main() -> std::io::Result<()> {
                         format!("{}", trail_nl(&caps[0]))
                     } else {
                         format!(
-                            "{}{}{}{}",
+                            "{}{}{}{}{}",
                             trail_nl(&caps[0]),
                             start_delimiter,
+                            fence_type,
                             wrap_nl(stdout.to_string()),
                             end_delimiter
                         )
@@ -301,15 +323,17 @@ fn main() -> std::io::Result<()> {
         *file = link_regex
             .replace_all(file, |caps: &Captures| {
                 let link = &caps["link"];
+                let fence_type = get_fence_type(caps);
 
                 eprintln!("[{} {}]", link_char, link);
 
                 let result = read_file(&FileArg::from_str_unsafe(link));
 
                 format!(
-                    "{}{}{}{}",
+                    "{}{}{}{}{}",
                     trail_nl(&caps[0]),
                     start_delimiter,
+                    fence_type,
                     wrap_nl(result.to_owned()),
                     end_delimiter
                 )
