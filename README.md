@@ -1,4 +1,4 @@
-# $ mdsh # markdown shell pre-processor
+# `$ mdsh` - a markdown shell pre-processor
 
 [![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
@@ -216,7 +216,7 @@ backtick or `<!-- END mdsh -->`.
 
 ## Related projects
 
-* http://chriswarbo.net/essays/activecode/ is the closest to this project. It
+* <http://chriswarbo.net/essays/activecode/> is the closest to this project. It
   has some interesting Pandoc filters that capture code blocks into outputs.
   The transformation is not in-place like `mdsh`.
 * [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming)
