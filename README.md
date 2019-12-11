@@ -142,6 +142,7 @@ ci.sh
 Cargo.lock
 Cargo.toml
 CHANGELOG.md
+_config.yml
 LICENSE
 README.md
 shell.nix

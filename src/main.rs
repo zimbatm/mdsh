@@ -129,7 +129,7 @@ static RE_COMMENT_BEGIN_STR: &str = r"(?:<!-- +)?";
 static RE_COMMENT_END_STR: &str = r"(?: +-->)?";
 
 /// Fenced code type specifier
-static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))";
+static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))?";
 
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
