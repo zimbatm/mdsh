@@ -99,6 +99,38 @@ I *can* include markdown. <code>Hehe</code>.
 <!-- END mdsh -->
 ~~~
 
+### Variables
+
+Syntax regexp:
+```regexp
+^`! ([\w_]+)=([^`]+)`\s*$
+```
+
+Variables allow you to set new variables in the environment and reachable by
+the next blocks that are being executed.
+
+The value part is being evaluated by bash and can thus spawn sub-shells.
+
+Examples:
+
+`! user=bob`
+
+Now the $user environment variable is available:
+
+`$ echo hello $user`
+```
+hello bob
+```
+
+Now capitalize the user
+
+`! USER=$(echo $user | tr '[[:lower:]]' '[[:upper:]]')`
+
+`$ echo hello $USER`
+```
+hello BOB
+```
+
 ### Link Includes
 
 Syntax regexp:

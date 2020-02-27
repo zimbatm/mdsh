@@ -1,13 +1,14 @@
 #[macro_use]
 extern crate lazy_static;
 
-use difference::Changeset;
-use mdsh::cli::{FileArg, Opt, Parent};
-use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, ErrorKind, Write};
 use std::process::{Command, Output, Stdio};
+
+use difference::Changeset;
+use mdsh::cli::{FileArg, Opt, Parent};
+use regex::{Captures, Regex};
 use structopt::StructOpt;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
@@ -119,6 +120,8 @@ static RE_MD_LINK_STR: &str = r"\[> [^\]]+\]\((?P<link>[^\)]+)\)";
 static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command>[^`]+)`";
 /// Command markdown block include of form `\`> command\``
 static RE_MD_COMMAND_STR: &str = r"`> (?P<command>[^`]+)`";
+/// Command to set a variable
+static RE_VAR_COMMAND_STR: &str = r"`! (?P<key>[\w_]+)=(?P<raw_value>[^`]+)`";
 /// Delimiter block for marking automatically inserted text
 static RE_FENCE_BLOCK_STR: &str = r"^```.+?^```";
 /// Delimiter block for marking automatically inserted markdown
@@ -145,20 +148,26 @@ lazy_static! {
         RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 
+    static ref RE_MATCH_ANY_COMMAND_STR: String = format!(r"(?sm)^{}(`[^`]+`){}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_FENCE_COMMAND_STR`
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^{}{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_FENCE_COMMAND_STR);
     /// Match `RE_MD_COMMAND_STR`
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_COMMENT_END_STR);
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_MD_COMMAND_STR);
+    /// Match `RE_VAR_COMMAND_STR`
+    static ref RE_MATCH_VAR_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_VAR_COMMAND_STR);
+
     /// Match `RE_FENCE_LINK_STR`
     static ref RE_MATCH_FENCE_LINK_STR: String = format!(r"(?sm)^{}{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_MD_LINK_STR`
     static ref RE_MATCH_MD_LINK_STR: String = format!(r"(?sm)^{}{}{} *$", RE_COMMENT_BEGIN_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR);
 
 
+    static ref RE_MATCH_ANY_COMMAND: Regex = Regex::new(&RE_MATCH_ANY_COMMAND_STR).unwrap();
     static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
+    static ref RE_MATCH_VAR_COMMAND: Regex = Regex::new(&RE_MATCH_VAR_COMMAND_STR).unwrap();
     static ref RE_MATCH_FENCE_LINK: Regex = Regex::new(&RE_MATCH_FENCE_LINK_STR).unwrap();
     static ref RE_MATCH_MD_LINK: Regex = Regex::new(&RE_MATCH_MD_LINK_STR).unwrap();
 
@@ -227,60 +236,124 @@ fn main() -> std::io::Result<()> {
         }
     };
 
+    let mut failures = Vec::new();
+
     // Run all commands and fill their blocks.
-    // If some commands return a non-zero exit code,
-    // returns a `Vec<FailingCommand>` of all commands that failed.
-    let fill_commands = |file: &mut String,
-                         command_regex: &Regex,
-                         command_char: char,
-                         start_delimiter: &str,
-                         end_delimiter: &str|
-     -> Result<(), Vec<FailingCommand>> {
-        let mut failures = Vec::new();
+    let fill_commands =
+        |data: &mut String, command_regex: &Regex| -> Result<(), Vec<FailingCommand>> {
+            *data = command_regex
+                .replace_all(data, |caps: &Captures| {
+                    let original_line = &caps[0];
+                    let command_line = &caps[1];
+                    let fence_type = get_fence_type(caps);
+                    eprintln!("{}", command_line);
+                    // eprintln!("command_line: {}", command_line);
+                    // eprintln!("fence_type: {}", fence_type);
 
-        *file = command_regex
-            .replace_all(file, |caps: &Captures| {
-                let command = &caps["command"];
-                let fence_type = get_fence_type(caps);
+                    if let Some(caps) = RE_MATCH_FENCE_COMMAND.captures(command_line) {
+                        let command = &caps["command"];
+                        // eprintln!("command: {}", command);
+                        let start_delimiter = "```";
+                        let end_delimiter = "```";
+                        let command_char = '$';
 
-                eprintln!("{} {}", command_char, command);
+                        // TODO: now match on any of the known commands
 
-                let result = run_command(command, &work_dir);
-                if result.status.success() {
-                    let stdout = String::from_utf8_lossy(&result.stdout);
-                    // remove ANSI escape sequences
-                    let stdout = filter_ansi(stdout.to_string());
-                    // we can leave the output block if stdout was empty
-                    if stdout.trim().is_empty() {
-                        format!("{}", trail_nl(&caps[0]))
+                        let result = run_command(command, &work_dir);
+                        if result.status.success() {
+                            let stdout = String::from_utf8_lossy(&result.stdout);
+                            // remove ANSI escape sequences
+                            let stdout = filter_ansi(stdout.to_string());
+                            // we can leave the output block if stdout was empty
+                            if stdout.trim().is_empty() {
+                                format!("{}", trail_nl(&original_line))
+                            } else {
+                                format!(
+                                    "{}{}{}{}{}",
+                                    trail_nl(&original_line),
+                                    start_delimiter,
+                                    fence_type,
+                                    wrap_nl(stdout.to_string()),
+                                    end_delimiter
+                                )
+                            }
+                        } else {
+                            failures.push(FailingCommand {
+                                output: result,
+                                command: command.to_string(),
+                                command_char: command_char,
+                            });
+                            // re-insert what was there before
+                            original_line.to_string()
+                        }
+                    } else if let Some(caps) = RE_MATCH_MD_COMMAND.captures(command_line) {
+                        let command = &caps["command"];
+                        // eprintln!("command: {}", command);
+                        let start_delimiter = "<!-- BEGIN mdsh -->";
+                        let end_delimiter = "<!-- END mdsh -->";
+                        let command_char = '>';
+
+                        let result = run_command(command, &work_dir);
+                        if result.status.success() {
+                            let stdout = String::from_utf8_lossy(&result.stdout);
+                            // remove ANSI escape sequences
+                            let stdout = filter_ansi(stdout.to_string());
+                            // we can leave the output block if STDOUT was empty
+                            if stdout.trim().is_empty() {
+                                format!("{}", trail_nl(&original_line))
+                            } else {
+                                format!(
+                                    "{}{}{}{}{}",
+                                    trail_nl(&original_line),
+                                    start_delimiter,
+                                    fence_type,
+                                    wrap_nl(stdout.to_string()),
+                                    end_delimiter
+                                )
+                            }
+                        } else {
+                            failures.push(FailingCommand {
+                                output: result,
+                                command: command.to_string(),
+                                command_char: command_char,
+                            });
+                            // re-insert what was there before
+                            original_line.to_string()
+                        }
+                    } else if let Some(caps) = RE_MATCH_VAR_COMMAND.captures(command_line) {
+                        let key = &caps["key"];
+                        let raw_value = &caps["raw_value"];
+                        // eprintln!("key: {}", key);
+                        // eprintln!("raw_value: {}", raw_value);
+                        let command = format!("echo {}", raw_value.trim());
+                        let result = run_command(&command, &work_dir);
+                        if result.status.success() {
+                            let stdout = String::from_utf8_lossy(&result.stdout);
+                            // remove ANSI escape sequences
+                            let stdout = filter_ansi(stdout.to_string());
+                            // set the environment variable
+                            std::env::set_var(key, stdout.trim());
+                        } else {
+                            failures.push(FailingCommand {
+                                output: result,
+                                command: command.to_string(),
+                                command_char: '!',
+                            });
+                        };
+
+                        // re-insert what was there before
+                        original_line.to_string()
                     } else {
-                        format!(
-                            "{}{}{}{}{}",
-                            trail_nl(&caps[0]),
-                            start_delimiter,
-                            fence_type,
-                            wrap_nl(stdout.to_string()),
-                            end_delimiter
-                        )
+                        panic!("WTF, not supported")
                     }
-                } else {
-                    failures.push(FailingCommand {
-                        output: result,
-                        command: command.to_string(),
-                        command_char: command_char,
-                    });
-                    // re-insert what was there before
-                    caps[0].to_string()
-                }
-            })
-            .into_owned();
-
-        if failures.is_empty() {
-            Ok(())
-        } else {
-            Err(failures)
-        }
-    };
+                })
+                .into_owned();
+            if failures.is_empty() {
+                Ok(())
+            } else {
+                Err(failures)
+            }
+        };
 
     fn print_failures(fs: Vec<FailingCommand>) {
         eprintln!("\nERROR: some commands failed:\n");
@@ -299,18 +372,12 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    fill_commands(&mut contents, &RE_MATCH_FENCE_COMMAND, '$', "```", "```")
-        .and(fill_commands(
-            &mut contents,
-            &RE_MATCH_MD_COMMAND,
-            '>',
-            "<!-- BEGIN mdsh -->",
-            "<!-- END mdsh -->",
-        ))
-        .or_else(|failures| -> std::io::Result<()> {
+    fill_commands(&mut contents, &RE_MATCH_ANY_COMMAND).or_else(
+        |failures| -> std::io::Result<()> {
             print_failures(failures);
             std::process::exit(1);
-        })?;
+        },
+    )?;
 
     /// Run all link includes and fill their blocks
     fn fill_includes(
