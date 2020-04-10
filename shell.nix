@@ -1,6 +1,4 @@
-let
-  pkgs = import ./nix/nixpkgs.nix;
-in
+{ pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = [
     pkgs.gitAndTools.git-extras
