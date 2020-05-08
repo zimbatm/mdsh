@@ -27,7 +27,7 @@ pub struct Opt {
     /// Using `--frozen`, you can guarantee that developers update
     /// documentation when they make a change. Just add `mdsh --frozen`
     /// as a check to your continuous integration setup.
-    #[structopt(long = "frozen")]
+    #[structopt(long = "frozen", conflicts_with = "clean")]
     pub frozen: bool,
 
     /// Remove all generated blocks.
