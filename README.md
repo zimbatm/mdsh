@@ -22,7 +22,7 @@ file and in exchange it allows to automate the refresh of those outputs.
 
 `$ mdsh --help`
 ```
-mdsh 0.4.0
+mdsh 0.5.0
 zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
 
