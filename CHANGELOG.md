@@ -1,4 +1,10 @@
 
+0.6.0 / 2021-02-26
+==================
+
+  * CHANGE: handle empty lines between command and result
+  * bump dependencies
+
 0.5.0 / 2020-05-08
 ==================
 
