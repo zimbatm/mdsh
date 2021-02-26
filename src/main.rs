@@ -137,13 +137,13 @@ static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))?";
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)(^{}(?:{}|{}){}{} *$)\n({}|{})",
+        r"(?sm)(^{}(?:{}|{}){}{} *$)\n+({}|{})",
         RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR,
         RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)(^{}(?:{}|{}){} *$)\n({}|{})",
+        r"(?sm)(^{}(?:{}|{}){} *$)\n+({}|{})",
         RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR,
         RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );

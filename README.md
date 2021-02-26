@@ -23,7 +23,6 @@ file and in exchange it allows to automate the refresh of those outputs.
 `$ mdsh --help`
 ```
 mdsh 0.5.0
-zimbatm <zimbatm@zimbatm.com>
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
 
 Exits non-zero if a sub-command failed.
@@ -33,7 +32,7 @@ USAGE:
 
 FLAGS:
         --clean      
-            Remove all generated blocks.
+            Remove all generated blocks
 
         --frozen     
             Fail if the output is different from the input. Useful for CI.
@@ -49,13 +48,13 @@ FLAGS:
 
 OPTIONS:
     -i, --input <input>          
-            Path to the markdown file. `-` for stdin. [default: ./README.md]
+            Path to the markdown file. `-` for stdin [default: ./README.md]
 
     -o, --output <output>        
-            Path to the output file, `-` for stdout [defaults to updating the input file in-place].
+            Path to the output file, `-` for stdout [defaults to updating the input file in-place]
 
-        --work_dir <work_dir>    
-            Directory to execute the scripts under [defaults to the input file’s directory].
+        --work_dir <work-dir>    
+            Directory to execute the scripts under [defaults to the input file’s directory]
 
 ```
 
