@@ -18,6 +18,6 @@ repository = "zimbatm/mdsh"
 
 [dependencies]
 difference = "2.0.0"
-lazy_static = "1.2.0"
-regex = "1.1.0"
-structopt = "0.2.14"
+lazy_static = "1.4.0"
+regex = "1.4.3"
+structopt = "0.3.21"
