@@ -234,7 +234,7 @@ fn main() -> std::io::Result<()> {
         } else {
             format!("")
         }
-    };
+    }
 
     let mut failures = Vec::new();
 
