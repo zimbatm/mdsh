@@ -10,9 +10,14 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "mdsh")]
 pub struct Opt {
-    /// Path to the markdown file. `-` for stdin.
-    #[structopt(short = "i", long = "input", default_value = "./README.md")]
-    pub input: FileArg,
+    /// Path to the markdown files. `-` for stdin.
+    #[structopt(
+        short = "i",
+        long = "inputs",
+        alias = "input",
+        default_value = "./README.md"
+    )]
+    pub inputs: Vec<FileArg>,
 
     /// Path to the output file, `-` for stdout [defaults to updating the input file in-place].
     #[structopt(short = "o", long = "output")]
@@ -70,6 +75,7 @@ impl FromStr for FileArg {
 }
 
 /// Parent path, gracefully handling relative path inputs
+#[derive(Debug, Clone)]
 pub struct Parent(PathBuf);
 
 impl Parent {
