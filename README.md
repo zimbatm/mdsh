@@ -1,6 +1,6 @@
 # `$ mdsh` - a markdown shell pre-processor
 
-[![Build Status](https://travis-ci.com/zimbatm/mdsh.svg?branch=master)](https://travis-ci.com/zimbatm/mdsh) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
+[![Build Status](https://github.com/zimbatm/mdsh/actions/workflows/ci.yaml/badge.svg)](https://github.com/zimbatm/mdsh/actions/workflows/ci.yaml?branch=master) [![crates.io](https://img.shields.io/crates/v/mdsh.svg)](https://crates.io/crates/mdsh)
 
 The mdsh project describes a Markdown language extension that can be used to
 automate some common tasks in README.md files. Quite often I find myself
