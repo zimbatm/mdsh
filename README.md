@@ -164,20 +164,9 @@ pp ({ foo: 3 })
 
 ANSI escape sequences are filtered from command outputs:
 
-`$ ls --color | sort | grep -v target`
+`$ echo $'\e[33m'yellow`
 ```
-samples
-src
-ci.sh
-Cargo.lock
-Cargo.toml
-CHANGELOG.md
-_config.yml
-flake.lock
-flake.nix
-LICENSE
-README.md
-shell.nix
+yellow
 ```
 
 ### Commented-out commands
