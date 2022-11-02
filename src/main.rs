@@ -417,13 +417,7 @@ fn main() -> std::io::Result<()> {
         "<!-- END mdsh -->",
     );
 
-    // Unless the file is frozen, write the file
-    if !frozen {
-        write_file(&output, contents.to_string());
-        return Ok(());
-    }
-
-    // If the file is frozen but the contents are the same, everything is fine
+    // If there is no change, these is nothing left to do.
     if original_contents == contents {
         return Ok(());
     }
@@ -432,8 +426,16 @@ fn main() -> std::io::Result<()> {
     let changeset = Changeset::new(&original_contents, &contents, "\n");
     eprintln!("{}", changeset);
 
-    return Err(std::io::Error::new(
-        ErrorKind::Other,
-        "--frozen: output is not the same",
-    ));
+    // If there are changes and the file is frozen, abort
+    if frozen {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            "--frozen: output is not the same",
+        ));
+    }
+
+    // Write the file
+    write_file(&output, contents.to_string());
+
+    return Ok(());
 }
