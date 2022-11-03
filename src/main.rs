@@ -186,23 +186,63 @@ fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
     let clean = opt.clean;
     let frozen = opt.frozen;
-    let input = opt.input;
-    let output = opt.output.unwrap_or_else(|| input.clone());
-    let work_dir: Parent = opt.work_dir.map_or_else(
-        || {
-            input
+    let inputs = opt.inputs;
+
+    if inputs.len() == 0 {
+        // Nothing to do
+        return Ok(());
+    } else if inputs.len() == 1 {
+        let input = inputs.first().unwrap();
+        let output = opt.output.unwrap_or_else(|| input.clone());
+        let work_dir: Parent = opt.work_dir.map_or_else(
+            || {
+                input
+                    .clone()
+                    .parent()
+                    .expect("fatal: your input file has no parent directory.")
+            },
+            |buf| Parent::from_parent_path_buf(buf),
+        );
+        process_file(&input, &output, &work_dir, clean, frozen)?;
+    } else {
+        if opt.output.is_some() {
+            return Err(std::io::Error::new(
+                ErrorKind::Other,
+                "--output is not compatible with multiple inputs",
+            ));
+        }
+        if opt.work_dir.is_some() {
+            return Err(std::io::Error::new(
+                ErrorKind::Other,
+                "--work-dir is not compatible with multiple inputs",
+            ));
+        }
+        for input in inputs {
+            let work_dir = input
                 .clone()
                 .parent()
-                .expect("fatal: your input file has no parent directory.")
-        },
-        |buf| Parent::from_parent_path_buf(buf),
-    );
+                .expect("fatal: your input file has no parent directory.");
+            let output = input.clone();
+            process_file(&input, &output, &work_dir, clean, frozen)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn process_file(
+    input: &FileArg,
+    output: &FileArg,
+    work_dir: &Parent,
+    clean: bool,
+    frozen: bool,
+) -> std::io::Result<()> {
     let original_contents = read_file(&input);
     let mut contents = original_contents.clone();
 
     eprintln!(
-        "Using clean={:?} input={:?} output={:?}",
-        clean, &input, output,
+        "Using input={:?} output={:?} work_dir={:?} clean={:?} frozen={:?}",
+        &input, output, work_dir, clean, frozen
     );
 
     /// Remove all outputs of blocks

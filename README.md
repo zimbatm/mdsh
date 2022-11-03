@@ -47,8 +47,8 @@ FLAGS:
 
 
 OPTIONS:
-    -i, --input <input>          
-            Path to the markdown file. `-` for stdin [default: ./README.md]
+    -i, --inputs <inputs>...     
+            Path to the markdown files. `-` for stdin [default: ./README.md]
 
     -o, --output <output>        
             Path to the output file, `-` for stdout [defaults to updating the input file in-place]
