@@ -22,7 +22,7 @@ file and in exchange it allows to automate the refresh of those outputs.
 
 `$ mdsh --help`
 ```
-mdsh 0.6.0
+mdsh 0.7.0
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
 
 Exits non-zero if a sub-command failed.

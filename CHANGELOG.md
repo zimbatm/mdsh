@@ -1,4 +1,15 @@
 
+0.7.0 / 2023-02-03
+==================
+
+  * FEAT: add support for multiple inputs (#33)
+  * FIX: add libiconv as a dev dependency
+  * FIX: avoid writing if no change
+  * README: make the run reproducible
+  * CHORE: fix CI on macOS
+  * CHORE: fix warning
+  * CHORE: Bump regex from 1.4.3 to 1.5.5 (#31)
+
 0.6.0 / 2021-02-26
 ==================
 
