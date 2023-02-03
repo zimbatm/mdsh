@@ -216,7 +216,7 @@ Add to your project's `.pre-commit-config.yaml`:
 
 ```yaml
 -   repo: https://github.com/zimbatm/mdsh.git
-    rev: master
+    rev: main
     hooks:
     -   id: mdsh
 ```
