@@ -98,6 +98,50 @@ I *can* include markdown. <code>Hehe</code>.
 <!-- END mdsh -->
 ~~~
 
+### Multiline Shell Code
+
+Syntax regexp:
+```regexp
+^```[$^]\n.*\n```$
+```
+
+Multiline Shell Code are normal multiline code that:
+
+* start at the beginning of a line
+* include `$` or `^` as "language"
+* contain a shell command
+
+When those are enountered, the command is executed by `mdsh` and output as
+either a fenced code block (`$`) or markdown code (`>`).
+
+* `$` runs the command and outputs a code block
+* `>` runs the command and outputs markdown
+
+Examples:
+
+~~~
+```$
+seq 3 | sort -r
+seq 2 | sort -r
+```
+```
+3
+2
+1
+2
+1
+```
+~~~
+
+~~~
+```>
+echo 'I *can* include markdown. <code>Hehe</code>.'
+```
+<!-- BEGIN mdsh -->
+I *can* include markdown. <code>Hehe</code>.
+<!-- END mdsh -->
+~~~
+
 ### Variables
 
 Syntax regexp:
