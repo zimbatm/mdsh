@@ -21,6 +21,7 @@ file and in exchange it allows to automate the refresh of those outputs.
 ## Usage
 
 `$ mdsh --help`
+
 ```
 mdsh 0.7.0
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
@@ -83,6 +84,7 @@ Examples:
 
 ~~~
 `$ seq 4 | sort -r`
+
 ```
 4
 3
@@ -93,6 +95,7 @@ Examples:
 
 ~~~
 `> echo 'I *can* include markdown. <code>Hehe</code>.'`
+
 <!-- BEGIN mdsh -->
 I *can* include markdown. <code>Hehe</code>.
 <!-- END mdsh -->
@@ -120,11 +123,12 @@ either a fenced code block (`$`) or markdown code (`>`).
 Examples:
 
 ~~~
-```$
+```$ as bash
 seq 3 | sort -r
 seq 2 | sort -r
 ```
-```
+
+```bash
 3
 2
 1
@@ -137,6 +141,7 @@ seq 2 | sort -r
 ```>
 echo 'I *can* include markdown. <code>Hehe</code>.'
 ```
+
 <!-- BEGIN mdsh -->
 I *can* include markdown. <code>Hehe</code>.
 <!-- END mdsh -->
@@ -158,9 +163,10 @@ Examples:
 
 `! user=bob`
 
-Now the $user environment variable is available:
+Now the `$user` environment variable is available:
 
 `$ echo hello $user`
+
 ```
 hello bob
 ```
@@ -170,6 +176,7 @@ Now capitalize the user
 `! USER=$(echo $user | tr '[[:lower:]]' '[[:upper:]]')`
 
 `$ echo hello $USER`
+
 ```
 hello BOB
 ```
@@ -190,6 +197,7 @@ Examples:
 
 ~~~
 [$ code.rb](samples/code.rb) as ruby
+
 ```ruby
 require "pp"
 
@@ -199,6 +207,7 @@ pp ({ foo: 3 })
 
 ~~~
 [> example.md](samples/example.md)
+
 <!-- BEGIN mdsh -->
 *this is part of the example.md file*
 <!-- END mdsh -->
@@ -209,6 +218,7 @@ pp ({ foo: 3 })
 ANSI escape sequences are filtered from command outputs:
 
 `$ echo $'\e[33m'yellow`
+
 ```
 yellow
 ```
@@ -220,6 +230,7 @@ commands support being hidden inside of a HTML comment like so:
 
 ~~~
 <!-- `$ echo example` -->
+
 ```
 example
 ```
@@ -232,6 +243,7 @@ postfix the line with `as <type>`. For example:
 
 ~~~
 `$ echo '{ key: "value" }'` as json
+
 ```json
 { key: "value" }
 ```
@@ -323,6 +335,7 @@ them as fast as we can.
 ## License
 
 [> LICENSE](LICENSE)
+
 <!-- BEGIN mdsh -->
 MIT License
 
