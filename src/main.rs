@@ -328,7 +328,7 @@ fn process_file(
                                 format!("{}", trail_nl(&original_line))
                             } else {
                                 format!(
-                                    "{}{}{}{}{}",
+                                    "{}\n{}{}{}{}",
                                     trail_nl(&original_line),
                                     start_delimiter,
                                     fence_type,
@@ -367,7 +367,7 @@ fn process_file(
                                 format!("{}", trail_nl(&original_line))
                             } else {
                                 format!(
-                                    "{}{}{}{}{}",
+                                    "{}\n{}{}{}{}",
                                     trail_nl(&original_line),
                                     start_delimiter,
                                     fence_type,
@@ -461,7 +461,7 @@ fn process_file(
                 let result = read_file(&FileArg::from_str_unsafe(link));
 
                 format!(
-                    "{}{}{}{}{}",
+                    "{}\n{}{}{}{}",
                     trail_nl(&caps[0]),
                     start_delimiter,
                     fence_type,
