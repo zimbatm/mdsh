@@ -124,7 +124,8 @@ static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command1>[^`]+)`";
 /// command
 /// ```
 /// ~~~
-static RE_MULTILINE_FENCE_COMMAND_STR: &str = r"```\$\n(?P<command2>[^`]+)\n```";
+static RE_MULTILINE_FENCE_COMMAND_STR: &str =
+    r"```\$( as (?P<fence_type2>\w+))?\n(?P<command2>[^`]+)\n```";
 /// Command markdown block include of form `\`> command\``
 static RE_MD_COMMAND_STR: &str = r"`> (?P<command1>[^`]+)`";
 /// Command markdown block include of form
@@ -146,13 +147,13 @@ static RE_COMMENT_BEGIN_STR: &str = r"(?:<!-- +)?";
 static RE_COMMENT_END_STR: &str = r"(?: +-->)?";
 
 /// Fenced code type specifier
-static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))?";
+static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type1>\w+))?";
 
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)(^{}(?:{}|{}|{}){}{} *$)\n+({}|{})",
-        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_MULTILINE_FENCE_COMMAND_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR,
+        r"(?sm)(^{}(?:({}|{}){}|{}){} *$)\n+({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_MULTILINE_FENCE_COMMAND_STR, RE_COMMENT_END_STR,
         RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
@@ -162,9 +163,9 @@ lazy_static! {
         RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 
-    static ref RE_MATCH_ANY_COMMAND_STR: String = format!(r"(?sm)^{}(`[^`\n]+`|```[$>]\n[^`]+\n```){}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
+    static ref RE_MATCH_ANY_COMMAND_STR: String = format!(r"(?sm)^{}(`[^`\n]+`{}|```(\$( as (?P<fence_type2>\w+))?|>)\n[^`]+\n```){} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_FENCE_COMMAND_STR`
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^({}|{})$", RE_FENCE_COMMAND_STR, RE_MULTILINE_FENCE_COMMAND_STR);
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^({}{}|{})$", RE_FENCE_COMMAND_STR, RE_FENCE_TYPE_STR, RE_MULTILINE_FENCE_COMMAND_STR);
     /// Match `RE_MD_COMMAND_STR`
     static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^({}|{})$", RE_MD_COMMAND_STR, RE_MULTILINE_MD_COMMAND_STR);
     /// Match `RE_VAR_COMMAND_STR`
@@ -283,7 +284,9 @@ fn process_file(
     // or an empty string.
     // That way if the fence type doesn't apply, nothing is being added.
     fn get_fence_type(caps: &Captures) -> String {
-        if let Some(name) = &caps.name("fence_type") {
+        if let Some(name) = &caps.name("fence_type1") {
+            format!("{}", name.as_str())
+        } else if let Some(name) = &caps.name("fence_type2") {
             format!("{}", name.as_str())
         } else {
             format!("")
