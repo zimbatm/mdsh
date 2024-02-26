@@ -251,6 +251,20 @@ If you are lucky enough to be a nix user:
 nix-env -f https://github.com/NixOS/nixpkgs/archive/master.tar.gz -iA mdsh
 ```
 
+If you are a nix + flakes user:
+
+```bash
+nix profile install github:zimbatm/mdsh
+```
+
+## Running without installation
+
+If you are a nix + flakes user:
+
+```bash
+nix run github:zimbatm/mdsh -- --help
+```
+
 ### Pre-commit hook
 
 This project can also be installed as a [pre-commit](https://pre-commit.com/)
