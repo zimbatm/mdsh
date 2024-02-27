@@ -117,9 +117,24 @@ static RE_FENCE_LINK_STR: &str = r"\[\$ [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Link markdown block include of form `[> description](./filename)`
 static RE_MD_LINK_STR: &str = r"\[> [^\]]+\]\((?P<link>[^\)]+)\)";
 /// Command text block include of form `\`$ command\``
-static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command>[^`]+)`";
+static RE_FENCE_COMMAND_STR: &str = r"`\$ (?P<command1>[^`]+)`";
+/// Command text block include of form
+/// ~~~
+/// ```$
+/// command
+/// ```
+/// ~~~
+static RE_MULTILINE_FENCE_COMMAND_STR: &str =
+    r"```\$( as (?P<fence_type2>\w+))?\n(?P<command2>[^`]+)\n```";
 /// Command markdown block include of form `\`> command\``
-static RE_MD_COMMAND_STR: &str = r"`> (?P<command>[^`]+)`";
+static RE_MD_COMMAND_STR: &str = r"`> (?P<command1>[^`]+)`";
+/// Command markdown block include of form
+/// ~~~
+/// ```>
+/// command
+/// ```
+/// ~~~
+static RE_MULTILINE_MD_COMMAND_STR: &str = r"```>\n(?P<command2>[^`]+)\n```";
 /// Command to set a variable
 static RE_VAR_COMMAND_STR: &str = r"`! (?P<key>[\w_]+)=(?P<raw_value>[^`]+)`";
 /// Delimiter block for marking automatically inserted text
@@ -132,27 +147,27 @@ static RE_COMMENT_BEGIN_STR: &str = r"(?:<!-- +)?";
 static RE_COMMENT_END_STR: &str = r"(?: +-->)?";
 
 /// Fenced code type specifier
-static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type>\w+))?";
+static RE_FENCE_TYPE_STR: &str = r"(?: as (?P<fence_type1>\w+))?";
 
 lazy_static! {
     /// Match a whole text block (`$` command or link and then delimiter block)
     static ref RE_MATCH_FENCE_BLOCK_STR: String = format!(
-        r"(?sm)(^{}(?:{}|{}){}{} *$)\n+({}|{})",
-        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR,
+        r"(?sm)(^{}(?:({}|{}){}|{}){} *$)\n+({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_FENCE_COMMAND_STR, RE_FENCE_LINK_STR, RE_FENCE_TYPE_STR, RE_MULTILINE_FENCE_COMMAND_STR, RE_COMMENT_END_STR,
         RE_FENCE_BLOCK_STR, RE_MD_BLOCK_STR,
     );
     /// Match a whole markdown block (`>` command or link and then delimiter block)
     static ref RE_MATCH_MD_BLOCK_STR: String = format!(
-        r"(?sm)(^{}(?:{}|{}){} *$)\n+({}|{})",
-        RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_COMMENT_END_STR,
+        r"(?sm)(^{}(?:{}|{}|{}){} *$)\n+({}|{})",
+        RE_COMMENT_BEGIN_STR, RE_MD_COMMAND_STR, RE_MD_LINK_STR, RE_MULTILINE_MD_COMMAND_STR, RE_COMMENT_END_STR,
         RE_MD_BLOCK_STR, RE_FENCE_BLOCK_STR,
     );
 
-    static ref RE_MATCH_ANY_COMMAND_STR: String = format!(r"(?sm)^{}(`[^`]+`){}{} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
+    static ref RE_MATCH_ANY_COMMAND_STR: String = format!(r"(?sm)^{}(`[^`\n]+`{}|```(\$( as (?P<fence_type2>\w+))?|>)\n[^`]+\n```){} *$", RE_COMMENT_BEGIN_STR, RE_FENCE_TYPE_STR, RE_COMMENT_END_STR);
     /// Match `RE_FENCE_COMMAND_STR`
-    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_FENCE_COMMAND_STR);
+    static ref RE_MATCH_FENCE_COMMAND_STR: String = format!(r"(?sm)^({}{}|{})$", RE_FENCE_COMMAND_STR, RE_FENCE_TYPE_STR, RE_MULTILINE_FENCE_COMMAND_STR);
     /// Match `RE_MD_COMMAND_STR`
-    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_MD_COMMAND_STR);
+    static ref RE_MATCH_MD_COMMAND_STR: String = format!(r"(?sm)^({}|{})$", RE_MD_COMMAND_STR, RE_MULTILINE_MD_COMMAND_STR);
     /// Match `RE_VAR_COMMAND_STR`
     static ref RE_MATCH_VAR_COMMAND_STR: String = format!(r"(?sm)^{}$", RE_VAR_COMMAND_STR);
 
@@ -163,7 +178,7 @@ lazy_static! {
 
 
     static ref RE_MATCH_ANY_COMMAND: Regex = Regex::new(&RE_MATCH_ANY_COMMAND_STR).unwrap();
-    static ref RE_MATCH_FENCE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
+    static ref RE_MATCH_CODE_BLOCK: Regex = Regex::new(&RE_MATCH_FENCE_BLOCK_STR).unwrap();
     static ref RE_MATCH_MD_BLOCK: Regex = Regex::new(&RE_MATCH_MD_BLOCK_STR).unwrap();
     static ref RE_MATCH_FENCE_COMMAND: Regex = Regex::new(&RE_MATCH_FENCE_COMMAND_STR).unwrap();
     static ref RE_MATCH_MD_COMMAND: Regex = Regex::new(&RE_MATCH_MD_COMMAND_STR).unwrap();
@@ -256,7 +271,7 @@ fn process_file(
             .into_owned()
     }
 
-    clean_blocks(&mut contents, &RE_MATCH_FENCE_BLOCK);
+    clean_blocks(&mut contents, &RE_MATCH_CODE_BLOCK);
     clean_blocks(&mut contents, &RE_MATCH_MD_BLOCK);
 
     // Write the contents and return if --clean is passed
@@ -269,7 +284,9 @@ fn process_file(
     // or an empty string.
     // That way if the fence type doesn't apply, nothing is being added.
     fn get_fence_type(caps: &Captures) -> String {
-        if let Some(name) = &caps.name("fence_type") {
+        if let Some(name) = &caps.name("fence_type1") {
+            format!("{}", name.as_str())
+        } else if let Some(name) = &caps.name("fence_type2") {
             format!("{}", name.as_str())
         } else {
             format!("")
@@ -291,7 +308,12 @@ fn process_file(
                     // eprintln!("fence_type: {}", fence_type);
 
                     if let Some(caps) = RE_MATCH_FENCE_COMMAND.captures(command_line) {
-                        let command = &caps["command"];
+                        let command1 = caps.name("command1").map_or("", |m| m.as_str());
+                        let command = if command1 != "" {
+                            command1
+                        } else {
+                            &caps["command2"]
+                        };
                         // eprintln!("command: {}", command);
                         let start_delimiter = "```";
                         let end_delimiter = "```";
@@ -309,7 +331,7 @@ fn process_file(
                                 format!("{}", trail_nl(&original_line))
                             } else {
                                 format!(
-                                    "{}{}{}{}{}",
+                                    "{}\n{}{}{}{}",
                                     trail_nl(&original_line),
                                     start_delimiter,
                                     fence_type,
@@ -327,7 +349,12 @@ fn process_file(
                             original_line.to_string()
                         }
                     } else if let Some(caps) = RE_MATCH_MD_COMMAND.captures(command_line) {
-                        let command = &caps["command"];
+                        let command1 = caps.name("command1").map_or("", |m| m.as_str());
+                        let command = if command1 != "" {
+                            command1
+                        } else {
+                            &caps["command2"]
+                        };
                         // eprintln!("command: {}", command);
                         let start_delimiter = "<!-- BEGIN mdsh -->";
                         let end_delimiter = "<!-- END mdsh -->";
@@ -343,7 +370,7 @@ fn process_file(
                                 format!("{}", trail_nl(&original_line))
                             } else {
                                 format!(
-                                    "{}{}{}{}{}",
+                                    "{}\n{}{}{}{}",
                                     trail_nl(&original_line),
                                     start_delimiter,
                                     fence_type,
@@ -437,7 +464,7 @@ fn process_file(
                 let result = read_file(&FileArg::from_str_unsafe(link));
 
                 format!(
-                    "{}{}{}{}{}",
+                    "{}\n{}{}{}{}",
                     trail_nl(&caps[0]),
                     start_delimiter,
                     fence_type,

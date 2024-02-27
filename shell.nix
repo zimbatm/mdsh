@@ -2,11 +2,12 @@
 pkgs.mkShell {
   buildInputs = [
     pkgs.cargo
-    pkgs.cargo.passthru.rustc
+    pkgs.rustc
     pkgs.gitAndTools.git-extras
     pkgs.gitAndTools.pre-commit
     pkgs.libiconv
     pkgs.rustfmt
+    pkgs.rust-analyzer
   ];
 
   shellHook = ''
