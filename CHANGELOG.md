@@ -1,4 +1,14 @@
 
+0.8.0 / 2024-02-27
+==================
+
+  * FEAT: support multiline commands (#59)
+  * FEAT: add Nix package and describe usage with flakes (#59)
+  * FIX: print newline after command
+  * CHORE: update readme
+  * CHORE: switch default branch to main
+  * CHORE: update deps
+
 0.7.0 / 2023-02-03
 ==================
 
