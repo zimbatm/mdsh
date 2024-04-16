@@ -14,7 +14,7 @@ use structopt::StructOpt;
 fn run_command(command: &str, work_dir: &Parent) -> Output {
     let mut cli = Command::new("bash");
     cli.arg("-c")
-        .arg(command)
+        .arg(format!("set -euo pipefail && {command}"))
         .stdin(Stdio::null()) // don't read from stdin
         .current_dir(work_dir.as_path_buf())
         .output()
@@ -195,6 +195,7 @@ struct FailingCommand {
     output: Output,
     command: String,
     command_char: char,
+    is_multiline: bool,
 }
 
 fn main() -> std::io::Result<()> {
@@ -309,7 +310,7 @@ fn process_file(
 
                     if let Some(caps) = RE_MATCH_FENCE_COMMAND.captures(command_line) {
                         let command1 = caps.name("command1").map_or("", |m| m.as_str());
-                        let command = if command1 != "" {
+                        let command: &str = if command1 != "" {
                             command1
                         } else {
                             &caps["command2"]
@@ -321,6 +322,7 @@ fn process_file(
 
                         // TODO: now match on any of the known commands
 
+                        let is_multiline = command.lines().count() > 1;
                         let result = run_command(command, &work_dir);
                         if result.status.success() {
                             let stdout = String::from_utf8_lossy(&result.stdout);
@@ -344,6 +346,7 @@ fn process_file(
                                 output: result,
                                 command: command.to_string(),
                                 command_char: command_char,
+                                is_multiline: is_multiline,
                             });
                             // re-insert what was there before
                             original_line.to_string()
@@ -383,6 +386,7 @@ fn process_file(
                                 output: result,
                                 command: command.to_string(),
                                 command_char: command_char,
+                                is_multiline: false,
                             });
                             // re-insert what was there before
                             original_line.to_string()
@@ -405,6 +409,7 @@ fn process_file(
                                 output: result,
                                 command: command.to_string(),
                                 command_char: '!',
+                                is_multiline: false,
                             });
                         };
 
@@ -432,9 +437,22 @@ fn process_file(
                 "" => String::from(""),
                 s => String::from("\nIts stderr was:\n") + s.trim_end(),
             };
+            let command_string_ = format!("{} ", f.command_char);
+            let (delimiter, newline, command_string) = if f.is_multiline {
+                ("```", "\n", "")
+            } else {
+                ("`", "", command_string_.as_str())
+            };
             eprintln!(
-                "`{} {}` failed with status {}.{}\n",
-                f.command_char, f.command, f.output.status, stderr
+                "{}{}{}{}{}{}\nfailed with {}.{}\n",
+                delimiter,
+                newline,
+                command_string,
+                f.command,
+                newline,
+                delimiter,
+                f.output.status,
+                stderr
             );
         }
     }

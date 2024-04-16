@@ -12,5 +12,6 @@ pkgs.mkShell {
 
   shellHook = ''
     export PATH=$PWD/target/debug:$PATH
+    export RUST_SRC_PATH="${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
   '';
 }
