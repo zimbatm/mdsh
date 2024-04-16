@@ -12,9 +12,9 @@
     in
     {
       devShell = import ./shell.nix { inherit pkgs; };
-      packages.default = pkgs.rustPlatform.buildRustPackage rec {
+      packages.default = pkgs.rustPlatform.buildRustPackage {
         pname = "mdsh";
-        version = "0.8.0";
+        version = "0.8.1";
 
         src = fs.toSource {
           root = ./.;
@@ -22,12 +22,11 @@
             fs.unions [
               ./Cargo.toml
               ./Cargo.lock
-              ./README.md
               ./src
             ];
         };
 
-        cargoSha256 = "sha256-irbEkKJyLmQry/dBY92kAsfpyHx1a7XumLYWiLU99mY=";
+        cargoSha256 = "sha256-Barf/CRt5LYtIxUigBZNwiJwVmmEjCKm2lbp+ww2sBs=";
 
         meta = with lib; {
           description = "Markdown shell pre-processor";
