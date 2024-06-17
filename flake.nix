@@ -51,7 +51,7 @@
             ];
           };
 
-          cargoHash = "sha256-s6nwLIxqaIDphi9O+c2gExBjWA9ejMsSnt7EKTyBTx8=";
+          cargoLock.lockFile = ./Cargo.lock;
 
           meta = with lib; {
             description = "Markdown shell pre-processor";
