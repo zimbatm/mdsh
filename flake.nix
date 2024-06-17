@@ -2,39 +2,45 @@
   description = "mdsh - a markdown shell pre-processor";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    systems.url = "github:nix-systems/default";
   };
-  outputs = inputs: inputs.flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      systems,
+    }:
     let
-      pkgs = inputs.nixpkgs.legacyPackages.${system};
-      inherit (pkgs) lib;
+      inherit (nixpkgs) lib;
       fs = lib.fileset;
+      eachSystem = f: lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
     in
     {
-      devShell = import ./shell.nix { inherit pkgs; };
-      packages.default = pkgs.rustPlatform.buildRustPackage {
-        pname = "mdsh";
-        version = "0.8.1";
 
-        src = fs.toSource {
-          root = ./.;
-          fileset =
-            fs.unions [
+      packages = eachSystem (pkgs: {
+        default = pkgs.rustPlatform.buildRustPackage rec {
+          pname = "mdsh";
+          version = "0.8.1";
+
+          src = fs.toSource {
+            root = ./.;
+            fileset = fs.unions [
               ./Cargo.toml
               ./Cargo.lock
               ./src
             ];
-        };
+          };
 
-        cargoSha256 = "sha256-Barf/CRt5LYtIxUigBZNwiJwVmmEjCKm2lbp+ww2sBs=";
+          cargoSha256 = "sha256-Barf/CRt5LYtIxUigBZNwiJwVmmEjCKm2lbp+ww2sBs=";
 
-        meta = with lib; {
-          description = "Markdown shell pre-processor";
-          homepage = "https://github.com/zimbatm/mdsh";
-          license = with licenses; [ mit ];
-          maintainers = with maintainers; [ zimbatm ];
-          mainProgram = "mdsh";
+          meta = with lib; {
+            description = "Markdown shell pre-processor";
+            homepage = "https://github.com/zimbatm/mdsh";
+            license = with licenses; [ mit ];
+            maintainers = with maintainers; [ zimbatm ];
+            mainProgram = "mdsh";
+          };
         };
-      };
-    });
+      });
+    };
 }
