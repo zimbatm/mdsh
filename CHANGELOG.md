@@ -1,4 +1,20 @@
 
+0.9.0 / 2024-06-17
+==================
+
+  * chore(deps): update actions/checkout digest to 692973e (#64)
+  * chore(nix): fix shell invocation
+  * chore(deps): cargo update
+  * chore(deps): flake update
+  * chore(flake): replace flake-utils with systems
+  * chore(deps): update cachix/install-nix-action action to v27 (#66)
+  * Merge pull request #63 from deemp/main
+  * fix: mdsh derivation - don't depend on readme - update hash - bump patch version
+  * chore: bump version
+  * fix: improve messages about failing commands
+  * fix: set RUST_SRC_PATH
+  * chore(deps): update cachix/install-nix-action action to v26 (#60)
+
 0.8.0 / 2024-02-27
 ==================
 

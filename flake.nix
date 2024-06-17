@@ -11,6 +11,8 @@
       systems,
     }:
     let
+      version = (lib.importTOML "${self}/Cargo.toml").package.version;
+
       inherit (nixpkgs) lib;
       fs = lib.fileset;
       eachSystem = f: lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
@@ -36,9 +38,9 @@
       });
 
       packages = eachSystem (pkgs: {
-        default = pkgs.rustPlatform.buildRustPackage rec {
+        default = pkgs.rustPlatform.buildRustPackage {
           pname = "mdsh";
-          version = "0.8.1";
+          inherit version;
 
           src = fs.toSource {
             root = ./.;

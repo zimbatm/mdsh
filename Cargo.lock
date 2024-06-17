@@ -90,7 +90,7 @@ checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "mdsh"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "difference",
  "lazy_static",
