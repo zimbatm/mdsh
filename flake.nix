@@ -31,7 +31,7 @@
             ];
           };
 
-          cargoSha256 = "sha256-Barf/CRt5LYtIxUigBZNwiJwVmmEjCKm2lbp+ww2sBs=";
+          cargoHash = "sha256-s6nwLIxqaIDphi9O+c2gExBjWA9ejMsSnt7EKTyBTx8=";
 
           meta = with lib; {
             description = "Markdown shell pre-processor";
