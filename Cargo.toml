@@ -2,7 +2,7 @@
 name = "mdsh"
 version = "0.8.1"
 authors = ["zimbatm <zimbatm@zimbatm.com>"]
-edition = "2018"
+edition = "2021"
 description = "Markdown shell pre-processor"
 homepage = "https://github.com/zimbatm/mdsh"
 repository = "https://github.com/zimbatm/mdsh"

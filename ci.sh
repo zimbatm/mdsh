@@ -1,5 +1,6 @@
 #!/usr/bin/env nix-shell
 #!nix-shell -i bash -I nixpkgs=channel:nixos-22.05
+# shellcheck shell=bash
 #
 # Travis CI specific build script
 set -euo pipefail
