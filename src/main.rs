@@ -9,7 +9,7 @@ use std::process::{Command, Output, Stdio};
 use difference::Changeset;
 use mdsh::cli::{FileArg, Opt, Parent};
 use regex::{Captures, Regex};
-use structopt::StructOpt;
+use clap::Parser;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
     let mut cli = Command::new("bash");
@@ -199,7 +199,7 @@ struct FailingCommand {
 }
 
 fn main() -> std::io::Result<()> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let clean = opt.clean;
     let frozen = opt.frozen;
     let inputs = opt.inputs;
