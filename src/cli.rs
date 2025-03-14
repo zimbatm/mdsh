@@ -8,7 +8,7 @@ use std::str::FromStr;
 ///
 /// Exits non-zero if a sub-command failed.
 #[derive(Debug, Parser)]
-#[clap(name = "mdsh")]
+#[clap(name = "mdsh", version = env!("CARGO_PKG_VERSION"))]
 pub struct Opt {
     /// Path to the markdown files. `-` for stdin.
     #[clap(
