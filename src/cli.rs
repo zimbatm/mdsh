@@ -1,18 +1,18 @@
 //! Command line interface
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use structopt::StructOpt;
+use clap::Parser;
 
 /// Markdown shell pre-processor.
 /// Never let your READMEs and tutorials get out of sync again.
 ///
 /// Exits non-zero if a sub-command failed.
-#[derive(Debug, StructOpt)]
-#[structopt(name = "mdsh")]
+#[derive(Debug, Parser)]
+#[clap(name = "mdsh")]
 pub struct Opt {
     /// Path to the markdown files. `-` for stdin.
-    #[structopt(
-        short = "i",
+    #[clap(
+        short = 'i',
         long = "inputs",
         alias = "input",
         default_value = "./README.md"
@@ -20,11 +20,11 @@ pub struct Opt {
     pub inputs: Vec<FileArg>,
 
     /// Path to the output file, `-` for stdout [defaults to updating the input file in-place].
-    #[structopt(short = "o", long = "output")]
+    #[clap(short = 'o', long = "output")]
     pub output: Option<FileArg>,
 
     /// Directory to execute the scripts under [defaults to the input file’s directory].
-    #[structopt(long = "work_dir", parse(from_os_str))]
+    #[clap(long = "work_dir")]
     pub work_dir: Option<PathBuf>,
 
     /// Fail if the output is different from the input. Useful for CI.
@@ -32,11 +32,11 @@ pub struct Opt {
     /// Using `--frozen`, you can guarantee that developers update
     /// documentation when they make a change. Just add `mdsh --frozen`
     /// as a check to your continuous integration setup.
-    #[structopt(long = "frozen", conflicts_with = "clean")]
+    #[clap(long = "frozen", conflicts_with = "clean")]
     pub frozen: bool,
 
     /// Remove all generated blocks.
-    #[structopt(long = "clean")]
+    #[clap(long = "clean")]
     pub clean: bool,
 }
 
