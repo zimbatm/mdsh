@@ -23,40 +23,34 @@ file and in exchange it allows to automate the refresh of those outputs.
 `$ mdsh --help`
 
 ```
-mdsh 0.9.0
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
 
 Exits non-zero if a sub-command failed.
 
-USAGE:
-    mdsh [FLAGS] [OPTIONS]
+Usage: mdsh [OPTIONS]
 
-FLAGS:
-        --clean      
-            Remove all generated blocks
+Options:
+  -i, --inputs <INPUTS>
+          Path to the markdown files. `-` for stdin
+          
+          [default: ./README.md]
 
-        --frozen     
-            Fail if the output is different from the input. Useful for CI.
-            
-            Using `--frozen`, you can guarantee that developers update documentation when they make a change. Just add
-            `mdsh --frozen` as a check to your continuous integration setup.
-    -h, --help       
-            Prints help information
+  -o, --output <OUTPUT>
+          Path to the output file, `-` for stdout [defaults to updating the input file in-place]
 
-    -V, --version    
-            Prints version information
+      --work_dir <WORK_DIR>
+          Directory to execute the scripts under [defaults to the input file’s directory]
 
+      --frozen
+          Fail if the output is different from the input. Useful for CI.
+          
+          Using `--frozen`, you can guarantee that developers update documentation when they make a change. Just add `mdsh --frozen` as a check to your continuous integration setup.
 
-OPTIONS:
-    -i, --inputs <inputs>...     
-            Path to the markdown files. `-` for stdin [default: ./README.md]
+      --clean
+          Remove all generated blocks
 
-    -o, --output <output>        
-            Path to the output file, `-` for stdout [defaults to updating the input file in-place]
-
-        --work_dir <work-dir>    
-            Directory to execute the scripts under [defaults to the input file’s directory]
-
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
 ## Syntax Extensions
