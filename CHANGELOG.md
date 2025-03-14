@@ -1,4 +1,19 @@
 
+0.9.1 / 2025-03-14
+==================
+
+  * fix(README): update mdsh output
+  * fix(deps): update rust crate clap to v4.5.32 (#79)
+  * fix(deps): update rust crate lazy_static to v1.5.0 (#68)
+  * fix(deps): update rust crate regex to v1.11.1 (#71)
+  * chore(deps): update actions/checkout digest to 11bd719 (#73)
+  * chore(deps): update cachix/install-nix-action action to v31 (#77)
+  * cli: port from structopt to clap/derive (#75)
+  * chore(deps): update cachix/install-nix-action action to v30 (#72)
+  * chore(deps): update cachix/install-nix-action action to v29 (#70)
+  * fix(deps): update rust crate regex to v1.10.6 (#69)
+  * chore(nix): read deps from Cargo.lock directly
+
 0.9.0 / 2024-06-17
 ==================
 
