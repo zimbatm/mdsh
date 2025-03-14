@@ -6,10 +6,10 @@ use std::io::prelude::*;
 use std::io::{self, ErrorKind, Write};
 use std::process::{Command, Output, Stdio};
 
+use clap::Parser;
 use difference::Changeset;
 use mdsh::cli::{FileArg, Opt, Parent};
 use regex::{Captures, Regex};
-use clap::Parser;
 
 fn run_command(command: &str, work_dir: &Parent) -> Output {
     let mut cli = Command::new("bash");

@@ -1,7 +1,7 @@
 //! Command line interface
+use clap::Parser;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use clap::Parser;
 
 /// Markdown shell pre-processor.
 /// Never let your READMEs and tutorials get out of sync again.
