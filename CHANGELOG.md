@@ -1,4 +1,11 @@
 
+0.9.2 / 2025-03-17
+==================
+
+  * chore: update `--help` output to fix test (#81)
+  * fix: add `--version` back (#80)
+  * chore: fmt
+
 0.9.1 / 2025-03-14
 ==================
 
