@@ -308,6 +308,7 @@ backtick or `<!-- END mdsh -->`.
 * <http://chriswarbo.net/essays/activecode/> is the closest to this project. It
   has some interesting Pandoc filters that capture code blocks into outputs.
   The transformation is not in-place like `mdsh`.
+* [Enola.dev's ExecMD](https://docs.enola.dev/use/execmd) is another similar tool.
 * [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming)
   is the practice of interspesing executable code into documents. There are
   many language-specific implementations out there. `mdsh` is a bit like a
