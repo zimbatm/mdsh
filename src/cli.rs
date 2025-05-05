@@ -1,7 +1,10 @@
 //! Command line interface
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
 use clap::Parser;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 /// Markdown shell pre-processor.
 /// Never let your READMEs and tutorials get out of sync again.
@@ -24,7 +27,7 @@ pub struct Opt {
     pub output: Option<FileArg>,
 
     /// Directory to execute the scripts under [defaults to the input file’s directory].
-    #[clap(long = "work_dir")]
+    #[clap(short = 'w', long = "work-dir")]
     pub work_dir: Option<PathBuf>,
 
     /// Fail if the output is different from the input. Useful for CI.
@@ -41,11 +44,20 @@ pub struct Opt {
 }
 
 /// Possible file input (either a file name or `-`)
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum FileArg {
     /// equal to - (so stdin or stdout)
     StdHandle,
     File(PathBuf),
+}
+
+impl std::fmt::Debug for FileArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Self::StdHandle => write!(f, "-"),
+            Self::File(buf) => buf.fmt(f),
+        }
+    }
 }
 
 impl FileArg {
@@ -96,7 +108,7 @@ impl Parent {
     pub fn current_dir() -> Self {
         Parent(
             std::env::current_dir().expect(
-                "fatal: current working directory not accessible and `--work_dir` not given",
+                "fatal: current working directory not accessible and `--work-dir` not given",
             ),
         )
     }
