@@ -12,7 +12,7 @@ repos:
     -  id: mdsh
        name: mdsh
        description: README.md shell pre-processor.
-       entry: cargo run -- --input
-       language: rust
+       entry: cargo run -- --inputs
+       language: system
        files: README.md
        always_run: true

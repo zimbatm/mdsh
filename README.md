@@ -18,9 +18,14 @@ In the end this gives a tool that is a bit akin to literate programming or
 jupyer notebooks but for shell commands. It adds a bit of verbosity to the
 file and in exchange it allows to automate the refresh of those outputs.
 
+See the source code of [./spec.clear.md](./spec.clear.md) and
+[./spec.processed.md](./spec.processed.md) for **everything** that `mdsh` can.
+
 ## Usage
 
-`$ mdsh --help`
+Run `mdsh --help`
+
+<!-- $ cargo run -- --help -->
 
 ```
 Markdown shell pre-processor. Never let your READMEs and tutorials get out of sync again.
@@ -32,18 +37,18 @@ Usage: mdsh [OPTIONS]
 Options:
   -i, --inputs <INPUTS>
           Path to the markdown files. `-` for stdin
-          
+
           [default: ./README.md]
 
   -o, --output <OUTPUT>
           Path to the output file, `-` for stdout [defaults to updating the input file in-place]
 
-      --work_dir <WORK_DIR>
+  -w, --work-dir <WORK_DIR>
           Directory to execute the scripts under [defaults to the input file’s directory]
 
       --frozen
           Fail if the output is different from the input. Useful for CI.
-          
+
           Using `--frozen`, you can guarantee that developers update documentation when they make a change. Just add `mdsh --frozen` as a check to your continuous integration setup.
 
       --clean
@@ -56,195 +61,102 @@ Options:
           Print version
 ```
 
-## Syntax Extensions
+## `mdsh` command
 
-### Inline Shell Code
-
-Syntax regexp:
-```regexp
-^`[$>] ([^`]+)`\s*$
-```
-
-Inline Shell Code are normal `inline code` that:
-
-* start at the beginning of a line
-* include either `$` or `>` at the beginning of their content
-* contain a shell command
-
-When those are enountered, the command is executed by `mdsh` and output as
-either a fenced code block (`$`) or markdown code (`>`).
-
-* `$` runs the command and outputs a code block
-* `>` runs the command and outputs markdown
-
-Examples:
-
-~~~
-`$ seq 4 | sort -r`
+The mdsh "Command" consists of these parts:
 
 ```
-4
-3
-2
-1
-```
-~~~
-
-~~~
-`> echo 'I *can* include markdown. <code>Hehe</code>.'`
-
-<!-- BEGIN mdsh -->
-I *can* include markdown. <code>Hehe</code>.
-<!-- END mdsh -->
-~~~
-
-### Multiline Shell Code
-
-Syntax regexp:
-```regexp
-^```[$^]\n.*\n```$
+[langname] <out_cmd> <in_cmd> [data_line]
+[data]
 ```
 
-Multiline Shell Code are normal multiline code that:
+`in_cmd` defines how and where to source data, it can be one of three:
+- `<` — read file as is. The filepath is sourced from `data_line`, if `data` is available, it is read per line for filenames and each file is concatenated to previos one.
+- `$` — command execution. If the `data_line` is available, then it is executed as shell command. If the `data` is available it is passed to the command as via stdin (Closes https://github.com/zimbatm/mdsh/issues/57). If only `data` is available but not `data_line`, then the `data` is executed as shell script.
+- "empty command" aka "use data as is", concatenating `data_line` and `data`. In practice this is useful only for env variables setting
 
-* start at the beginning of a line
-* include `$` or `^` as "language"
-* contain a shell command
+`out_cmd` defines what to do with the data from `in_cmd`, it can be one of three:
+- `> lang` — produce code block with `lang` (similarly to current `as lang` statements).
+- `>` — produce raw markdown output fenced by comment-tags
+- `!` — expand data to shell variables
 
-When those are enountered, the command is executed by `mdsh` and output as
-either a fenced code block (`$`) or markdown code (`>`).
+with these 3 * 3 commands you get 9 combinations, for example:
 
-* `$` runs the command and outputs a code block
-* `>` runs the command and outputs markdown
+- `> < include.md` — read file and produce raw markdown
+- `> py < script.py` — read script.py and produce code block with language `py`
+- `> yml $ ./script.py foo $bar` — execute `script.py foo $bar` in shell and produce `yml` code block
+- `>$ ./gen-md.py` — execute `gen-md.py` and produce raw markdown
+- `! foo=$bar` — use `foo=$bar` as "raw data" and expand env variables that can be used in the next shell executions
+- `!< .env` — read `.env` and eval shell vars
+- `!$ ./gen-vars.py` — execute gen-vars and treat output as the list of shell variable assignments
 
-Examples:
+So it can do quite a lot of things and the underlying model is pretty simple, and even allows to do some useless things, like `> hello` — would produce an empty code block with `hello` language.
 
-~~~
-```$ as bash
-seq 3 | sort -r
-seq 2 | sort -r
+## Containers
+
+Commands can be put into containers, here's all of them:
+
+### Inline code blocks
+
+Must start from new line and end with newline.  `langname` is skipped, parsing starts right from `out_cmd`, `data` is absent.
+
+```md
+`>$ echo hi`
 ```
 
-```bash
-3
-2
-1
-2
-1
+### Code blocks
+````
+```[langname] <out_cmd> <in_cmd> [data_line]
+[data]
 ```
-~~~
+````
 
-~~~
-```>
-echo 'I *can* include markdown. <code>Hehe</code>.'
+Source environment variables:
+````md
+```env !
+foo=$bar
 ```
+````
 
-<!-- BEGIN mdsh -->
-I *can* include markdown. <code>Hehe</code>.
-<!-- END mdsh -->
-~~~
-
-### Variables
-
-Syntax regexp:
-```regexp
-^`! ([\w_]+)=([^`]+)`\s*$
+Execute script and produce yaml block (you can even put shebang at the top and use other than bash scripting languages.
+````md
+```sh > yaml $
+echo 'foo: true'
 ```
+````
 
-Variables allow you to set new variables in the environment and reachable by
-the next blocks that are being executed.
-
-The value part is being evaluated by bash and can thus spawn sub-shells.
-
-Examples:
-
-`! user=bob`
-
-Now the `$user` environment variable is available:
-
-`$ echo hello $user`
-
+Run `data_line` as oneline command and pass code block to it via stdin, producing raw markdown.
+````md
+```> $ sed 's/.*/Hi, \0/'
+Bobby
 ```
-hello bob
+````
+
+### Oneline comments
+
+Similar to inline code blocks but hidden:
+
+```md
+`<!-- >< LICENSE.md -->` — includes LICENSE.md
 ```
 
-Now capitalize the user
+### Multiline comment blocks
 
-`! USER=$(echo $user | tr '[[:lower:]]' '[[:upper:]]')`
+Behaves similarly to code blocks, but `langname` is not needed
 
-`$ echo hello $USER`
+````md
+<!-- > yml $
+echo 'hi: true'
+-->
+````
 
+### Links
+
+These slightly deviate from the rest of containers:
+
+```md
+[<out_cmd> <in_cmd> whatever here is ignored](<data_line>)
 ```
-hello BOB
-```
-
-### Link Includes
-
-Syntax regexp:
-```regexp
-^\[[$>] ([^\]]+)]\([^\)]+\)\s*$
-```
-
-Link Includes work similarily to code blocks but with the link syntax.
-
-* `$` loads the file and embeds it as a code block
-* `>` loads the file and embeds it as markdown
-
-Examples:
-
-~~~
-[$ code.rb](samples/code.rb) as ruby
-
-```ruby
-require "pp"
-
-pp ({ foo: 3 })
-```
-~~~
-
-~~~
-[> example.md](samples/example.md)
-
-<!-- BEGIN mdsh -->
-*this is part of the example.md file*
-<!-- END mdsh -->
-~~~
-
-### ANSI escapes
-
-ANSI escape sequences are filtered from command outputs:
-
-`$ echo $'\e[33m'yellow`
-
-```
-yellow
-```
-
-### Commented-out commands
-
-Sometimes it's useful not to render the command that is being shown. All the
-commands support being hidden inside of a HTML comment like so:
-
-~~~
-<!-- `$ echo example` -->
-
-```
-example
-```
-~~~
-
-### Fenced code type
-
-If you want GitHub to highlight the outputted code fences, it's possible to
-postfix the line with `as <type>`. For example:
-
-~~~
-`$ echo '{ key: "value" }'` as json
-
-```json
-{ key: "value" }
-```
-~~~
 
 ## Installation
 
@@ -322,7 +234,7 @@ backtick or `<!-- END mdsh -->`.
 ### Issues
 
 If you have any problems with or questions about this project, please contact
-use through a [GitHub issue](https://github.com/zimbatm/mdsh/issues).
+us through a [GitHub issue](https://github.com/zimbatm/mdsh/issues).
 
 ### Contributing
 
@@ -332,7 +244,7 @@ them as fast as we can.
 
 ## License
 
-[> LICENSE](LICENSE)
+[>< LICENSE](LICENSE)
 
 <!-- BEGIN mdsh -->
 MIT License

@@ -12,12 +12,21 @@ keywords = [
 ]
 readme = "README.md"
 license = "MIT"
+default-run = "mdsh"
+
+[[bin]]
+name = "gen-test-md"
+path = "src/gen_test_md.rs"
 
 [badges.travis-ci]
 repository = "zimbatm/mdsh"
 
 [dependencies]
+anyhow = "1.0.98"
 clap = { version = "4", features = ["derive"] }
-difference = "2.0.0"
-lazy_static = "1.4.0"
-regex = "1.9.5"
+nom = { version = "8.0.0", default-features = false }
+nom-language = "0.1.0"
+shellexpand = { version = "3", default-features = false, features = ["base-0"] }
+
+[dev-dependencies]
+dedent = "0.1.1"
