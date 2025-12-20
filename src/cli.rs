@@ -18,7 +18,8 @@ pub struct Opt {
         short = 'i',
         long = "inputs",
         alias = "input",
-        default_value = "./README.md"
+        default_value = "./README.md",
+        num_args = 1..,
     )]
     pub inputs: Vec<FileArg>,
 
