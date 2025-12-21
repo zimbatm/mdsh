@@ -22,8 +22,8 @@
         default = pkgs.mkShell {
           buildInputs = [
             pkgs.cargo
-            pkgs.gitAndTools.git-extras
-            pkgs.gitAndTools.pre-commit
+            pkgs.git-extras
+            pkgs.pre-commit
             pkgs.libiconv
             pkgs.rust-analyzer
             pkgs.rustc
