@@ -12,7 +12,8 @@ repos:
     -  id: mdsh
        name: mdsh
        description: README.md shell pre-processor.
-       entry: cargo run -- --inputs
+       entry: cargo run -- --inputs README.md
        language: system
-       files: README.md
+       files: ^README.md$
        always_run: true
+       pass_filenames: false

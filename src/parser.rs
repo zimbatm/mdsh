@@ -80,10 +80,7 @@ impl<'a> nom::Parser<&'a str> for FencedBlockParser {
                     many0_count(not(tag(BEGIN_MDSH).or(tag(END_MDSH))).and(anychar))
                         .and(alt((peek(tag(END_MDSH)), recognize(Self)))),
                 ),
-                cut(tag(END_MDSH)
-                    .and(space0)
-                    .and(recognize(newline).or(eof))
-                    .and(multispace0)),
+                cut(tag(END_MDSH).and(space0).and(eolf()).and(multispace0)),
             ),
         )
         .map(|_| ())
@@ -104,7 +101,7 @@ fn link<'a>() -> impl Parser<'a, Action<'a>> {
             not(char('[')),
             cut((take_until("]"), tag("]("))),
             cut(filepath()),
-            cut((char(')'), newline)),
+            cut((char(')'), eolf())),
         ),
     )
     .map(|(_, command, _, _, filepath, _)| Action {
@@ -166,7 +163,7 @@ fn actionable_comment<'a>() -> impl Parser<'a, Action<'a>> {
         delimited(
             tag("<!--"),
             take_until1("-->"),
-            tag("-->").and(space0).and(newline),
+            tag("-->").and(space0).and(eolf()),
         )
         .and_then(
             (
@@ -197,7 +194,7 @@ fn inline_code<'a>() -> impl Parser<'a, Action<'a>> {
     context(
         "inline code",
         recognize(take_while_m_n(1, 2, |x| x == '`').and(not(char('`'))))
-            .flat_map(|q1| terminated(take_until1(q1), tag(q1).and(newline)))
+            .flat_map(|q1| terminated(take_until1(q1), tag(q1).and(eolf())))
             .and_then((command(), space0, rest))
             .map(|(command, _, rest)| Action {
                 command,
@@ -221,7 +218,7 @@ fn actionable_code_block<'a>() -> impl Parser<'a, Action<'a>> {
             command(),
             space0,
             opt(take_until1("\n")),
-            newline,
+            eolf(),
         )
             .map(|(_srclang, command, _, data_line, _)| (command, data_line))
     }
@@ -252,7 +249,7 @@ fn code_block<'a, X>(
                     peek(tag(q)).map(|_| "\n"), // covers the edge case with empty code block
                     recognize(many0_count(not(newline.and(tag(q))).and(anychar)).and(newline)),
                 ))),
-                cut(tag(q).and(newline)),
+                cut(tag(q).and(eolf())),
             )
         }),
     )
@@ -286,6 +283,10 @@ pub fn env_var_line<'a>() -> impl Parser<'a, Option<(&'a str, &'a str)>> {
         (multispace1).map(|_| None),
         kv_definition.map(Some),
     ))
+}
+
+fn eolf<'a>() -> impl Parser<'a, &'a str> {
+    recognize(newline).or(eof)
 }
 
 pub fn fmt_nom_error<'a>(

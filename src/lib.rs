@@ -2,6 +2,8 @@ pub mod cli;
 pub mod executor;
 mod nom_ext;
 pub mod parser;
+#[cfg(test)]
+mod tests;
 
 use std::io::Write;
 
@@ -26,11 +28,14 @@ pub trait Processor<'a> {
                 .context("processing markdown piece")?;
         }
 
-        let (_input, _) = iter
+        let (remaining_input, _) = iter
             .finish()
             .finish()
             .map_err(fmt_nom_error(input, &format!("{input_pipe:?}")))
             .context("parsing markdown")?;
+
+        self.process_piece(MdPiece::RawLine(remaining_input))
+            .context("processing remaining unparsed input")?;
 
         Ok(())
     }
