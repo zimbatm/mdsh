@@ -50,12 +50,21 @@ pub fn markdown_piece<'a>() -> impl Parser<'a, MdPiece<'a>> {
 pub type ActionWithSource<'a> = (&'a str, Action<'a>);
 
 fn action_with_source<'a>() -> impl Parser<'a, ActionWithSource<'a>> {
-    consumed(alt((
-        actionable_code_block(),
-        inline_code(),
-        link(),
-        actionable_comment(),
-    )))
+    consumed((
+        alt((
+            actionable_code_block(),
+            inline_code(),
+            link(),
+            actionable_comment(),
+        )),
+        opt(transition_line()),
+    ))
+    .map(|(source, (mut action, transition))| {
+        if action.transition.is_none() {
+            action.transition = transition;
+        }
+        (source, action)
+    })
 }
 
 /// Need this to avoid "recursive opaque type" error.
@@ -107,10 +116,16 @@ fn link<'a>() -> impl Parser<'a, Action<'a>> {
             cut((char(')'), newline)),
         ),
     )
-    .map(|(_, command, _, _, filepath, _)| Action {
-        command,
-        data_line: Some(filepath),
-        data: None,
+    .map(|(_, command, _, (description, _), filepath, _)| {
+        let transition = description
+            .split_once(" :: ")
+            .map(|(_, t)| t.trim_end());
+        Action {
+            command,
+            data_line: Some(filepath),
+            data: None,
+            transition,
+        }
     })
 }
 
@@ -153,6 +168,38 @@ fn command<'a>() -> impl Parser<'a, Command<'a>> {
     )
 }
 
+fn transition_line<'a>() -> impl Parser<'a, &'a str> {
+    context(
+        "transition line",
+        delimited(
+            tag("<!-- :: "),
+            take_until(" -->"),
+            (tag(" -->"), space0, newline),
+        ),
+    )
+}
+
+/// Split a string on ` :: ` to extract an optional transition text suffix.
+/// Returns `(data_line, transition)`.
+fn split_transition(s: Option<&str>) -> (Option<&str>, Option<&str>) {
+    match s {
+        Some(s) if s.starts_with(":: ") => (None, Some(&s[3..])),
+        Some(s) if s == "::" => (None, None),
+        Some(s) => match s.split_once(" :: ") {
+            Some(("", after)) => (None, Some(after)),
+            Some((before, after)) => (Some(before), Some(after)),
+            None => {
+                if s.is_empty() {
+                    (None, None)
+                } else {
+                    (Some(s), None)
+                }
+            }
+        },
+        None => (None, None),
+    }
+}
+
 fn comment<'a>() -> impl Parser<'a, &'a str> {
     recognize(context(
         "comment",
@@ -180,10 +227,14 @@ fn actionable_comment<'a>() -> impl Parser<'a, Action<'a>> {
                 opt(newline),
                 rest,
             )
-                .map(|(_, command, _, data_line, _, data)| Action {
-                    command,
-                    data_line,
-                    data: Some(data),
+                .map(|(_, command, _, raw_data_line, _, data)| {
+                    let (data_line, transition) = split_transition(raw_data_line);
+                    Action {
+                        command,
+                        data_line,
+                        data: Some(data),
+                        transition,
+                    }
                 }),
         ),
     )
@@ -199,10 +250,14 @@ fn inline_code<'a>() -> impl Parser<'a, Action<'a>> {
         recognize(take_while_m_n(1, 2, |x| x == '`').and(not(char('`'))))
             .flat_map(|q1| terminated(take_until1(q1), tag(q1).and(newline)))
             .and_then((command(), space0, rest))
-            .map(|(command, _, rest)| Action {
-                command,
-                data_line: Some(rest),
-                data: None,
+            .map(|(command, _, rest)| {
+                let (data_line, transition) = split_transition(Some(rest));
+                Action {
+                    command,
+                    data_line,
+                    data: None,
+                    transition,
+                }
             }),
     )
 }
@@ -215,7 +270,8 @@ fn non_actionable_code_block<'a>() -> impl Parser<'a, &'a str> {
 }
 
 fn actionable_code_block<'a>() -> impl Parser<'a, Action<'a>> {
-    fn meta_line<'a>() -> impl Parser<'a, (Command<'a>, Option<&'a str>)> {
+    fn meta_line<'a>(
+    ) -> impl Parser<'a, (Command<'a>, Option<&'a str>, Option<&'a str>)> {
         (
             opt(filepath()).and(space0),
             command(),
@@ -223,16 +279,20 @@ fn actionable_code_block<'a>() -> impl Parser<'a, Action<'a>> {
             opt(take_until1("\n")),
             newline,
         )
-            .map(|(_srclang, command, _, data_line, _)| (command, data_line))
+            .map(|(_srclang, command, _, rest, _)| {
+                let (data_line, transition) = split_transition(rest);
+                (command, data_line, transition)
+            })
     }
     context(
         "code block with mdsh command",
         code_block(FnParser::new(meta_line)),
     )
-    .map(|((command, data_line), data)| Action {
+    .map(|((command, data_line, transition), data)| Action {
         command,
         data_line,
         data: Some(data),
+        transition,
     })
 }
 

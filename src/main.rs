@@ -5,15 +5,6 @@ use std::{
 
 use anyhow::Context;
 
-/// Trims trailing ASCII whitespace from a byte slice.
-/// Stable alternative to the unstable `trim_ascii_end()` method.
-fn trim_ascii_end(bytes: &[u8]) -> &[u8] {
-    let mut end = bytes.len();
-    while end > 0 && bytes[end - 1].is_ascii_whitespace() {
-        end -= 1;
-    }
-    &bytes[..end]
-}
 use clap::Parser;
 use mdsh::{
     cli::{FileArg, Opt, Parent},
@@ -68,7 +59,12 @@ fn process_file(
     clean: bool,
     frozen: bool,
 ) -> anyhow::Result<()> {
-    let input_content = read_file(input)?;
+    let mut input_content = read_file(input)?;
+    let had_trailing_newline = input_content.ends_with('\n');
+    // The parser requires every line to end with '\n', so ensure the last line is terminated.
+    if !had_trailing_newline {
+        input_content.push('\n');
+    }
 
     let work_dir = work_dir.as_path_buf().as_os_str();
     match (input, output) {
@@ -81,7 +77,14 @@ fn process_file(
             }
             let file_unmodified_check = !frozen || input_content.as_bytes() == buffer;
 
-            std::fs::write(outf, trim_ascii_end(&buffer))
+            // Strip the trailing '\n' we may have added for the parser,
+            // preserving the file's original trailing newline convention.
+            let output = if had_trailing_newline {
+                &buffer[..]
+            } else {
+                buffer.strip_suffix(b"\n").unwrap_or(&buffer)
+            };
+            std::fs::write(outf, output)
                 .with_context(|| format!("failed to write file {outf:?}"))?;
 
             file_unmodified_check

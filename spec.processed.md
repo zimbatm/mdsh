@@ -18,6 +18,8 @@ in `spec.clear.md` must correspond to the same section in `spec.processed.md`.
     - [Executing command in multiline comments with data line and producing raw markdown](#executing-command-in-multiline-comments-with-data-line-and-producing-raw-markdown)
     - [Executing command in multiline comments and producing raw markdown](#executing-command-in-multiline-comments-and-producing-raw-markdown)
     - [Executing command in markdown link and producing raw markdown](#executing-command-in-markdown-link-and-producing-raw-markdown)
+    - [Code block with transition producing raw markdown](#code-block-with-transition-producing-raw-markdown)
+    - [Inline code with transition as a comment producing raw markdown](#inline-code-with-transition-as-a-comment-producing-raw-markdown)
   - [Reading files contents](#reading-files-contents)
     - [Reading file in inline code and producing raw markdown](#reading-file-in-inline-code-and-producing-raw-markdown)
     - [Reading file in code blocks and producing raw markdown](#reading-file-in-code-blocks-and-producing-raw-markdown)
@@ -34,6 +36,7 @@ in `spec.clear.md` must correspond to the same section in `spec.processed.md`.
     - [Executing command in multiline comments with data line and producing code block](#executing-command-in-multiline-comments-with-data-line-and-producing-code-block)
     - [Executing command in multiline comments and producing code block](#executing-command-in-multiline-comments-and-producing-code-block)
     - [Executing command in markdown link and producing code block](#executing-command-in-markdown-link-and-producing-code-block)
+    - [Code block with transition producing code block](#code-block-with-transition-producing-code-block)
   - [Reading files contents](#reading-files-contents-1)
     - [Reading file in inline code and producing code block](#reading-file-in-inline-code-and-producing-code-block)
     - [Reading file in code blocks and producing code block](#reading-file-in-code-blocks-and-producing-code-block)
@@ -149,6 +152,29 @@ I am *markdown*
 
 <!-- BEGIN mdsh -->
 I'm gen-md.sh
+<!-- END mdsh -->
+
+#### Code block with transition producing raw markdown
+
+```sh > $ :: which outputs:
+echo 'hello world'
+```
+
+<!-- BEGIN mdsh -->
+which outputs:
+
+hello world
+<!-- END mdsh -->
+
+#### Inline code with transition as a comment producing raw markdown
+
+`> $ echo 'hello world'`
+<!-- :: which outputs: -->
+
+<!-- BEGIN mdsh -->
+which outputs:
+
+hello world
 <!-- END mdsh -->
 
 ### Reading files contents
@@ -302,6 +328,20 @@ foo: true
 <!-- BEGIN mdsh -->
 ```yaml
 foo: bar
+```
+<!-- END mdsh -->
+
+#### Code block with transition producing code block
+
+```sh > txt $ :: which outputs:
+echo 'hello world'
+```
+
+<!-- BEGIN mdsh -->
+which outputs:
+
+```txt
+hello world
 ```
 <!-- END mdsh -->
 
