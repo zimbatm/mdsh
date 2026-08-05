@@ -16,6 +16,7 @@ pub struct Action<'a> {
     pub command: Command<'a>,
     pub data_line: Option<&'a str>,
     pub data: Option<&'a str>,
+    pub transition: Option<&'a str>,
 }
 
 /// Command to execute: get data, act on data.
@@ -88,7 +89,7 @@ impl<'a, W: Write> TheProcessor<'a, W> {
         let mut r = self
             .get_data(action.command.in_type, action.data_line, action.data)
             .context("getting data")?;
-        self.act_on_data(action.command.out_type, &mut r)
+        self.act_on_data(action.command.out_type, action.transition, &mut r)
     }
 
     /// Execute or read to get the data
@@ -163,11 +164,18 @@ impl<'a, W: Write> TheProcessor<'a, W> {
     }
 
     /// Takes data and acts on it
-    fn act_on_data<R: Read>(&mut self, out_type: OutType<'a>, data: &mut R) -> Result<()> {
+    fn act_on_data<R: Read>(
+        &mut self,
+        out_type: OutType<'a>,
+        transition: Option<&str>,
+        data: &mut R,
+    ) -> Result<()> {
         match out_type {
-            OutType::Markdown => produce_fenced_block(data, &mut self.out),
+            OutType::Markdown => produce_fenced_block(data, &mut self.out, transition),
             OutType::Environment => self.env_var_list(data),
-            OutType::CodeBlock(lang_name) => produce_code_block(lang_name, data, &mut self.out),
+            OutType::CodeBlock(lang_name) => {
+                produce_code_block(lang_name, data, &mut self.out, transition)
+            }
         }
         .context("acting on data")
     }
@@ -205,20 +213,33 @@ impl<'a, W: Write> TheProcessor<'a, W> {
     }
 }
 
-fn produce_fenced_block<R: Read, W: Write>(r: &mut R, w: &mut W) -> Result<()> {
+fn produce_fenced_block<R: Read, W: Write>(
+    r: &mut R,
+    w: &mut W,
+    transition: Option<&str>,
+) -> Result<()> {
     writeln!(w, "\n{BEGIN_MDSH}")?;
+    if let Some(text) = transition {
+        writeln!(w, "{text}\n")?;
+    }
     std::io::copy(r, w)?;
     writeln!(w, "{END_MDSH}")?;
     Ok(())
 }
 
-fn produce_code_block<R: Read, W: Write>(lang: &str, r: &mut R, w: &mut W) -> Result<()> {
+fn produce_code_block<R: Read, W: Write>(
+    lang: &str,
+    r: &mut R,
+    w: &mut W,
+    transition: Option<&str>,
+) -> Result<()> {
     produce_fenced_block(
         &mut format!("```{lang}\n")
             .as_bytes()
             .chain(r)
             .chain("```\n".as_bytes()),
         w,
+        transition,
     )
 }
 
