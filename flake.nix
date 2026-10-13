@@ -66,5 +66,16 @@
           };
         };
       });
+
+      checks = eachSystem (
+        pkgs:
+        let
+          inherit (pkgs.stdenv.hostPlatform) system;
+        in
+        {
+          package = self.packages.${system}.default;
+          devshell = self.devShells.${system}.default;
+        }
+      );
     };
 }
