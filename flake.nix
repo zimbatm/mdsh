@@ -45,6 +45,7 @@
           src = fs.toSource {
             root = ./.;
             fileset = fs.unions [
+              ./build.rs
               ./Cargo.toml
               ./Cargo.lock
               ./src
@@ -65,5 +66,16 @@
           };
         };
       });
+
+      checks = eachSystem (
+        pkgs:
+        let
+          inherit (pkgs.stdenv.hostPlatform) system;
+        in
+        {
+          package = self.packages.${system}.default;
+          devshell = self.devShells.${system}.default;
+        }
+      );
     };
 }
